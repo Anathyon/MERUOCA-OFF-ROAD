@@ -4,8 +4,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Variantes de estilo para o componente Button.
+ * Utiliza class-variance-authority para gerenciar combinações de estilos e tamanhos.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-95",
   {
     variants: {
       variant: {
@@ -15,8 +19,9 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        hero: "bg-gradient-primary text-primary-foreground font-condensed font-bold uppercase tracking-wider shadow-neon hover:shadow-[0_0_50px_hsl(var(--primary)/0.8)] hover:scale-[1.03] transition-all duration-300",
-        outlineNeon: "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground font-condensed font-bold uppercase tracking-wider transition-all",
+        // Variantes personalizadas para a identidade visual do Meruoca Off-Road
+        hero: "bg-primary text-primary-foreground font-condensed font-bold uppercase tracking-wider shadow-neon hover:shadow-[0_0_50px_hsl(var(--primary)/0.8)] hover:scale-[1.03] transition-all duration-300 disabled:opacity-70 disabled:bg-primary/50 disabled:text-primary-foreground/80",
+        outlineNeon: "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground font-condensed font-bold uppercase tracking-wider disabled:opacity-50",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -39,6 +44,10 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+/**
+ * Componente de Botão Universal.
+ * Suporta composição via 'asChild' (Radix UI Slot) para funcionar como link ou outros elementos.
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";

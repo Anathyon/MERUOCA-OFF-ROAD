@@ -6,57 +6,70 @@ import {
 } from "@/components/ui/accordion";
 import { Reveal } from "./Reveal";
 
+/**
+ * Base de dados das perguntas frequentes (FAQ).
+ * Facilita a adição ou edição de perguntas sem alterar a lógica do componente.
+ */
 const faqs = [
   {
     q: "Preciso ter experiência para participar?",
-    a: "Não! A trilha conta com 3 níveis de dificuldade, perfeita para quem está começando até pilotos avançados. Você escolhe o seu nível na inscrição.",
+    a: "Não obrigatoriamente. O evento foi desenhado com trajetos para 3 níveis de habilidade: Iniciante, Intermediário e Avançado. Você escolhe o seu grupo no ato da inscrição.",
   },
   {
-    q: "Que tipo de moto posso usar?",
-    a: "Qualquer moto off-road (trail, enduro, motocross) em boas condições mecânicas. Recomendamos pneus apropriados para terra/lama.",
+    q: "Quais tipos de veículos são permitidos?",
+    a: "Motos Off-Road (Enduro, Motocross, Trail), Quadriciclos e Veículos 4x4. É essencial que o veículo esteja revisado e em boas condições de uso.",
   },
   {
-    q: "O que está incluso na inscrição?",
-    a: "Camisa do evento, troféu, kit piloto, café da manhã, almoço, brinde e estrutura de apoio com equipe técnica e ambulância.",
+    q: "O que compõe o Kit do Piloto?",
+    a: "O kit inclui a Camisa oficial do evento, Troféu de participação, Numeração para o veículo e brindes de patrocinadores.",
   },
   {
-    q: "Há equipe de apoio na trilha?",
-    a: "Sim. Teremos pontos de apoio com hidratação, equipe mecânica e ambulância acompanhando o evento.",
+    q: "Como será a estrutura de alimentação?",
+    a: "Ofereceremos um café da manhã reforçado na concentração e um almoço completo na chegada do evento.",
   },
   {
-    q: "Posso levar acompanhantes?",
-    a: "Acompanhantes são bem-vindos no ponto de largada e chegada. Apenas pilotos inscritos podem participar da trilha.",
+    q: "Haverá suporte durante o percurso?",
+    a: "Sim. Teremos pontos de apoio estratégicos com hidratação, equipe de mecânicos para emergências e suporte médico com ambulância acompanhando o trajeto.",
   },
   {
-    q: "Como funciona o pagamento?",
-    a: "Após enviar o formulário, entraremos em contato com as instruções de pagamento. Sua vaga será confirmada após o pagamento.",
+    q: "Como confirmo meu pagamento?",
+    a: "Após a submissão do formulário, nossa equipe enviará as chaves PIX ou boletos via WhatsApp/E-mail. A vaga é garantida somente após o envio do comprovante.",
   },
 ];
 
+/**
+ * Componente FaqSection (Dúvidas Frequentes).
+ * Utiliza o componente Accordion para organizar as respostas de forma compacta e intuitiva.
+ */
 export const FaqSection = () => {
   return (
-    <section id="faq" className="relative py-20 md:py-28">
-      <div className="container-tight max-w-3xl">
-        <Reveal variant="up" className="text-center mb-10">
-          <span className="font-condensed text-xs uppercase tracking-[0.3em] text-primary">
-            Dúvidas Frequentes
+    <section id="faq" className="relative py-20 md:py-28 bg-background/50">
+      <div className="container-tight max-w-4xl mx-auto px-4">
+        {/* Título da Seção com Reveal */}
+        <Reveal variant="up" className="text-center mb-12">
+          <span className="font-condensed text-xs uppercase tracking-[0.4em] text-primary block mb-2">
+            Central de Ajuda
           </span>
-          <h2 className="font-display text-4xl md:text-6xl mt-3 mb-4">
+          <h2 className="font-display text-5xl md:text-6xl uppercase leading-tight">
             Perguntas <span className="text-primary animate-glow-pulse">comuns</span>
           </h2>
         </Reveal>
 
-        <Accordion type="single" collapsible className="space-y-3">
+        {/* Accordion List: Estilizado com bordas neon e transições suaves */}
+        <Accordion type="single" collapsible className="space-y-4">
           {faqs.map((f, i) => (
-            <Reveal key={i} variant="up" delay={i * 80}>
+            <Reveal key={i} variant="up" delay={i * 50}>
               <AccordionItem
                 value={`item-${i}`}
-                className="bg-card border border-border px-5 hover:border-primary/50 hover:shadow-neon-soft transition-all duration-300"
+                className="bg-card/40 border border-border/60 px-6 rounded-sm hover:border-primary/40 hover:shadow-neon-soft transition-all duration-300"
               >
-                <AccordionTrigger className="font-condensed font-bold uppercase tracking-wide text-left text-lg hover:text-primary hover:no-underline">
-                  {f.q}
+                <AccordionTrigger className="font-display uppercase tracking-widest text-left text-lg md:text-xl py-5 hover:text-primary hover:no-underline transition-colors group">
+                  <span className="flex items-center gap-3">
+                    <span className="text-primary/40 group-hover:text-primary transition-colors">#{i + 1}</span>
+                    {f.q}
+                  </span>
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground text-base">
+                <AccordionContent className="text-muted-foreground text-base md:text-lg leading-relaxed pb-6 border-t border-border/20 pt-4">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>

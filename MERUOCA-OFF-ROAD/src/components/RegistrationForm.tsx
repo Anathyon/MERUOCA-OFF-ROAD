@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState, useMemo } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, User, Phone, Bike, CreditCard, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,56 +17,46 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
+import { useRegistrationStore } from "@/store/useRegistrationStore";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, or } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
-const schema = z.object({
+/**
+ * Esquema de validação com Zod.
+ */
+export const registrationSchema = z.object({
+  _gotcha: z.string().max(0).optional(),
   nome: z.string().trim().min(3, "Informe seu nome completo").max(120),
   apelidoNumero: z.string().trim().max(50).optional(),
-  cpf: z
-    .string()
-    .trim()
-    .min(11, "CPF inválido")
-    .max(14, "CPF inválido"),
+  cpf: z.string().trim().regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/, "CPF inválido (000.000.000-00)"),
   nascimento: z.string().min(1, "Informe sua data de nascimento"),
-  email: z.string().trim().email("E-mail inválido").max(255),
-  telefone: z
-    .string()
-    .trim()
-    .min(10, "Telefone inválido")
-    .max(20, "Telefone inválido"),
-  cidade: z.string().trim().min(2, "Informe sua cidade").max(100),
-  estado: z.string().trim().min(2, "UF").max(2, "Use a sigla, ex: CE"),
+  email: z.string().trim().email("E-mail inválido").toLowerCase(),
+  telefone: z.string().trim().min(10, "Telefone inválido"),
+  cidade: z.string().trim().min(2, "Informe sua cidade"),
+  estado: z.string().trim().min(2, "UF").max(2).toUpperCase(),
   equipe: z.string().trim().max(100).optional(),
-  emergenciaNome: z.string().trim().min(3, "Informe um contato").max(120),
-  emergenciaTelefone: z.string().trim().min(10).max(20),
-  modeloMoto: z.string().trim().min(2, "Informe o modelo da moto").max(80),
-  cilindrada: z.string().min(1, "Selecione a cilindrada"),
-  modalidade: z.string().min(1, "Selecione a modalidade"),
-  nivel: z.string().min(1, "Selecione seu nível"),
-  participarHard: z.string().min(1, "Selecione se vai participar do HARD"),
-  tipoSanguineo: z.string().min(1, "Selecione o tipo sanguíneo"),
-  camisa: z.string().min(1, "Selecione o tamanho"),
+  emergenciaNome: z.string().trim().min(3, "Informe um contato"),
+  emergenciaTelefone: z.string().trim().min(10, "Telefone inválido"),
+  modeloMoto: z.string().trim().min(2, "Informe o modelo"),
+  cilindrada: z.string().min(1, "Selecione"),
+  modalidade: z.string().min(1, "Selecione"),
+  nivel: z.string().min(1, "Selecione"),
+  participarHard: z.string().min(1, "Selecione"),
+  tipoSanguineo: z.string().min(1, "Selecione"),
+  camisa: z.string().min(1, "Selecione"),
   observacoes: z.string().max(500).optional(),
-  termoSaude: z
-    .boolean()
-    .refine((v) => v === true, {
-      message: "Obrigatório",
-    }),
-  termoImagem: z
-    .boolean()
-    .refine((v) => v === true, {
-      message: "Obrigatório",
-    }),
-  termoAmbiente: z
-    .boolean()
-    .refine((v) => v === true, {
-      message: "Obrigatório",
-    }),
+  termoSaude: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
+  termoImagem: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
+  termoAmbiente: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
+  comprovante: z.any().optional(),
 });
 
-type FormData = z.infer<typeof schema>;
+export type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export const RegistrationForm = () => {
   const [submitted, setSubmitted] = useState(false);
+  const { formData, setFormData, resetForm } = useRegistrationStore();
 
   const {
     register,
@@ -74,296 +64,255 @@ export const RegistrationForm = () => {
     setValue,
     watch,
     reset,
+    control,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: { 
-      observacoes: "", 
-      termoSaude: false as unknown as true,
-      termoImagem: false as unknown as true,
-      termoAmbiente: false as unknown as true,
-    },
+  } = useForm<RegistrationFormData>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: useMemo(() => ({ 
+      ...formData,
+      _gotcha: "",
+      observacoes: formData.observacoes || "", 
+    }), [formData]),
   });
 
-  const onSubmit = async (data: FormData) => {
-    // Simula envio. Quando o backend estiver ativo, chamar a API/edge function.
-    await new Promise((r) => setTimeout(r, 900));
-    console.log("Inscrição:", data);
-    toast.success("Inscrição enviada!", {
-      description: "Em breve você receberá a confirmação por e-mail.",
+  // Sincronização Zustand com debouncing via watch subscription
+  useEffect(() => {
+    const subscription = watch((value) => {
+      const { _gotcha, ...rest } = value;
+      setFormData(rest as any);
     });
-    setSubmitted(true);
-    reset();
+    return () => subscription.unsubscribe();
+  }, [watch, setFormData]);
+  
+  const normalize = (val: string) => val.replace(/\D/g, "");
+
+  const onSubmit = async (data: RegistrationFormData) => {
+    if (data._gotcha) return; 
+    
+    try {
+      const normalizedCPF = normalize(data.cpf);
+      const normalizedEmail = data.email.toLowerCase().trim();
+
+      // Verificação de duplicidade (CPF ou E-mail)
+      const q = query(
+        collection(db, "registrations"),
+        or(
+          where("cpf", "==", data.cpf), // Verifica original
+          where("cpf", "==", normalizedCPF), // Verifica normalizado
+          where("email", "==", normalizedEmail)
+        )
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        toast.error("Inscrição já realizada", {
+          description: "Já existe um cadastro com este CPF ou E-mail. Se precisar alterar algo, entre em contato.",
+          icon: <ShieldCheck className="w-5 h-5 text-destructive" />,
+        });
+        return;
+      }
+
+      const { comprovante, ...registrationData } = data;
+      await addDoc(collection(db, "registrations"), {
+        ...registrationData,
+        cpf: normalizedCPF, // Salva normalizado para futuras buscas consistentes
+        email: normalizedEmail,
+        submittedAt: serverTimestamp(),
+        status: "pending",
+      });
+      toast.success("Inscrição enviada!", {
+        description: "Seus dados foram salvos no sistema.",
+        icon: <ShieldCheck className="w-5 h-5 text-primary" />,
+      });
+      setSubmitted(true);
+      resetForm();
+      reset();
+    } catch (error: any) {
+      console.error("Firebase Error:", error);
+      if (error.message?.includes("not found")) {
+        toast.error("Erro de Configuração", {
+          description: "O banco de dados Firestore não foi encontrado. Verifique se ele foi criado no console do Firebase.",
+        });
+      } else {
+        toast.error("Erro ao enviar inscrição. Verifique sua conexão e tente novamente.");
+      }
+    }
   };
 
-  if (submitted) {
-    return (
-      <div className="text-center p-8 md:p-12 bg-card border-2 border-primary shadow-neon">
-        <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-4" />
-        <h3 className="font-display text-3xl md:text-4xl text-primary text-glow mb-2">
-          Inscrição recebida!
-        </h3>
-        <p className="text-muted-foreground mb-6">
-          Logo entraremos em contato com instruções para o pagamento e
-          confirmação da sua vaga.
-        </p>
-        <Button variant="outlineNeon" onClick={() => setSubmitted(false)}>
-          Inscrever outro piloto
-        </Button>
-      </div>
-    );
-  }
+  if (submitted) return <SuccessState onReset={() => setSubmitted(false)} />;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Dados pessoais */}
-      <fieldset className="space-y-4">
-        <legend className="font-display text-2xl text-primary mb-2">1. Dados Pessoais</legend>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 pb-12">
+      <div className="hidden"><input {...register("_gotcha")} tabIndex={-1} /></div>
 
+      <FormSection title="Dados Pessoais" number="1" icon={<User className="w-4 h-4" />}>
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Nome completo *" error={errors.nome?.message}>
-            <Input {...register("nome")} placeholder="Seu nome completo" />
-          </Field>
-          <Field label="Apelido / Número" error={errors.apelidoNumero?.message}>
-            <Input {...register("apelidoNumero")} placeholder="Seu apelido ou número" />
-          </Field>
+          <Field label="Nome completo *" error={errors.nome?.message}><Input {...register("nome")} placeholder="Nome do Piloto" /></Field>
+          <Field label="Apelido / Número" error={errors.apelidoNumero?.message}><Input {...register("apelidoNumero")} placeholder="Como prefere ser chamado" /></Field>
         </div>
-
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="CPF *" error={errors.cpf?.message}>
-            <Input {...register("cpf")} placeholder="000.000.000-00" />
-          </Field>
-          <Field label="Data de nascimento *" error={errors.nascimento?.message}>
-            <Input type="date" {...register("nascimento")} />
-          </Field>
+          <Field label="CPF *" error={errors.cpf?.message}><Input {...register("cpf")} placeholder="000.000.000-00" /></Field>
+          <Field label="Nascimento *" error={errors.nascimento?.message}><Input type="date" {...register("nascimento")} className="block" /></Field>
         </div>
-
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="E-mail *" error={errors.email?.message}>
-            <Input type="email" {...register("email")} placeholder="voce@email.com" />
-          </Field>
-          <Field label="Telefone / WhatsApp *" error={errors.telefone?.message}>
-            <Input {...register("telefone")} placeholder="(00) 00000-0000" />
-          </Field>
+          <Field label="E-mail *" error={errors.email?.message}><Input type="email" {...register("email")} placeholder="seu@email.com" /></Field>
+          <Field label="Telefone *" error={errors.telefone?.message}><Input {...register("telefone")} placeholder="(00) 00000-0000" /></Field>
         </div>
-
         <div className="grid md:grid-cols-3 gap-4">
-          <Field label="Cidade *" error={errors.cidade?.message}>
-            <Input {...register("cidade")} placeholder="Sua cidade" />
-          </Field>
-          <Field label="UF *" error={errors.estado?.message}>
-            <Input {...register("estado")} placeholder="CE" maxLength={2} />
-          </Field>
-          <Field label="Equipe" error={errors.equipe?.message}>
-            <Input {...register("equipe")} placeholder="Nome da sua equipe" />
-          </Field>
+          <Field label="Cidade *" error={errors.cidade?.message}><Input {...register("cidade")} /></Field>
+          <Field label="UF *" error={errors.estado?.message}><Input {...register("estado")} maxLength={2} /></Field>
+          <Field label="Equipe" error={errors.equipe?.message}><Input {...register("equipe")} /></Field>
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* Contato emergência */}
-      <fieldset className="space-y-4 pt-4 border-t border-border">
-        <legend className="font-display text-2xl text-primary mb-2">2. Contato de Emergência</legend>
+      <FormSection title="Emergência" number="2" icon={<Phone className="w-4 h-4" />}>
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Nome *" error={errors.emergenciaNome?.message}>
-            <Input {...register("emergenciaNome")} placeholder="Nome completo" />
-          </Field>
-          <Field label="Telefone *" error={errors.emergenciaTelefone?.message}>
-            <Input {...register("emergenciaTelefone")} placeholder="(00) 00000-0000" />
-          </Field>
+          <Field label="Nome do Contato *" error={errors.emergenciaNome?.message}><Input {...register("emergenciaNome")} /></Field>
+          <Field label="Telefone de Emergência *" error={errors.emergenciaTelefone?.message}><Input {...register("emergenciaTelefone")} /></Field>
         </div>
-      </fieldset>
+      </FormSection>
 
-      {/* Moto e nível */}
-      <fieldset className="space-y-4 pt-4 border-t border-border">
-        <legend className="font-display text-2xl text-primary mb-2">3. Sua Moto & Nível</legend>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Modalidade *" error={errors.modalidade?.message}>
-            <RadioGroup
-              onValueChange={(v) => setValue("modalidade", v, { shouldValidate: true })}
-              value={watch("modalidade")}
-              className="flex gap-4 pt-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Moto" id="mod-moto" />
-                <Label htmlFor="mod-moto">Moto</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Quadriciclo" id="mod-quadri" />
-                <Label htmlFor="mod-quadri">Quadriciclo</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="4X4" id="mod-4x4" />
-                <Label htmlFor="mod-4x4">4X4</Label>
-              </div>
-            </RadioGroup>
-          </Field>
-          <Field label="Vai participar do HARD? *" error={errors.participarHard?.message}>
-            <RadioGroup
-              onValueChange={(v) => setValue("participarHard", v, { shouldValidate: true })}
-              value={watch("participarHard")}
-              className="flex gap-4 pt-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="SIM" id="hard-sim" />
-                <Label htmlFor="hard-sim">SIM</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="NÃO" id="hard-nao" />
-                <Label htmlFor="hard-nao">NÃO</Label>
-              </div>
-            </RadioGroup>
-          </Field>
+      <FormSection title="Veículo & Nível" number="3" icon={<Bike className="w-4 h-4" />}>
+        <div className="grid md:grid-cols-2 gap-6">
+          <RadioField label="Modalidade *" control={control} name="modalidade" options={["Moto", "Quadriciclo", "4X4"]} setValue={setValue} error={errors.modalidade?.message} />
+          <RadioField label="Participará do HARD? *" control={control} name="participarHard" options={["SIM", "NÃO"]} setValue={setValue} error={errors.participarHard?.message} />
         </div>
-
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Marca e modelo do veículo *" error={errors.modeloMoto?.message}>
-            <Input {...register("modeloMoto")} placeholder="Ex: Honda CRF 250F / Troller" />
-          </Field>
-          <Field label="Cilindrada *" error={errors.cilindrada?.message}>
-            <Select onValueChange={(v) => setValue("cilindrada", v, { shouldValidate: true })} value={watch("cilindrada")}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ate-160">Até 160cc</SelectItem>
-                <SelectItem value="161-250">161 a 250cc</SelectItem>
-                <SelectItem value="251-450">251 a 450cc</SelectItem>
-                <SelectItem value="acima-450">Acima de 450cc</SelectItem>
-                <SelectItem value="n-a">N/A (Quadri/4X4)</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
+          <Field label="Marca e Modelo *" error={errors.modeloMoto?.message}><Input {...register("modeloMoto")} placeholder="Ex: Honda CRF 250F" /></Field>
+          <SelectField label="Cilindrada *" control={control} name="cilindrada" setValue={setValue} error={errors.cilindrada?.message} options={[
+            { v: "ate-160", l: "Até 160cc" }, { v: "161-250", l: "161 a 250cc" }, { v: "251-450", l: "251 a 450cc" }, { v: "acima-450", l: "Acima de 450cc" }, { v: "n-a", l: "N/A" }
+          ]} />
         </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Nível de pilotagem *" error={errors.nivel?.message}>
-            <RadioGroup
-              onValueChange={(v) => setValue("nivel", v, { shouldValidate: true })}
-              value={watch("nivel")}
-              className="flex flex-col gap-2 pt-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="iniciante" id="nv-iniciante" />
-                <Label htmlFor="nv-iniciante">Iniciante</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="intermediario" id="nv-intermediario" />
-                <Label htmlFor="nv-intermediario">Intermediário (Já participou de outras trilhas)</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="avancado" id="nv-avancado" />
-                <Label htmlFor="nv-avancado">Avançado (Piloto experiente)</Label>
-              </div>
-            </RadioGroup>
-          </Field>
+        <div className="grid md:grid-cols-2 gap-6">
+          <RadioField label="Nível de Pilotagem *" control={control} name="nivel" vertical options={[{v: "iniciante", l: "Iniciante"}, {v: "intermediario", l: "Intermediário"}, {v: "avancado", l: "Avançado"}]} setValue={setValue} error={errors.nivel?.message} />
           <div className="space-y-4">
-            <Field label="Tipo Sanguíneo *" error={errors.tipoSanguineo?.message}>
-              <Select onValueChange={(v) => setValue("tipoSanguineo", v, { shouldValidate: true })} value={watch("tipoSanguineo")}>
-                <SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger>
-                <SelectContent>
-                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((tipo) => (
-                    <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Tamanho da camisa *" error={errors.camisa?.message}>
-              <Select onValueChange={(v) => setValue("camisa", v, { shouldValidate: true })} value={watch("camisa")}>
-                <SelectTrigger><SelectValue placeholder="Escolher" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="P">P</SelectItem>
-                  <SelectItem value="M">M</SelectItem>
-                  <SelectItem value="G">G</SelectItem>
-                  <SelectItem value="GG">GG</SelectItem>
-                  <SelectItem value="XG">XG</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+            <SelectField label="Tipo Sanguíneo *" control={control} name="tipoSanguineo" setValue={setValue} error={errors.tipoSanguineo?.message} options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]} />
+            <SelectField label="Tamanho da Camisa *" control={control} name="camisa" setValue={setValue} error={errors.camisa?.message} options={["P", "M", "G", "GG", "XG"]} />
           </div>
         </div>
+        <Field label="Observações de Saúde" error={errors.observacoes?.message}><Textarea {...register("observacoes")} rows={2} /></Field>
+      </FormSection>
 
-        <Field label="Observações (alergias, restrições alimentares, etc.)" error={errors.observacoes?.message}>
-          <Textarea {...register("observacoes")} rows={3} placeholder="Conte algo importante para a organização..." />
-        </Field>
-      </fieldset>
-
-      {/* Termos */}
-      <fieldset className="space-y-4 pt-4 border-t border-border">
-        <legend className="font-display text-2xl text-primary mb-2">4. Termos de Responsabilidade (Obrigatório)</legend>
-        
-        <div className="space-y-4 bg-secondary/20 p-4 border border-border">
-          <div className="flex items-start gap-3">
-            <Checkbox
-              id="termoSaude"
-              checked={!!watch("termoSaude")}
-              onCheckedChange={(c) => setValue("termoSaude", c === true, { shouldValidate: true })}
-              className="mt-1"
-            />
-            <Label htmlFor="termoSaude" className="text-sm leading-relaxed cursor-pointer">
-              Declaro que estou apto de saúde física e mental para participar do evento, assumo os riscos inerentes à prática do off-road e isento a organização de responsabilidades por danos ao meu veículo. *
-            </Label>
-          </div>
-          {errors.termoSaude?.message && <p className="text-destructive text-xs ml-8">{errors.termoSaude.message}</p>}
-
-          <div className="flex items-start gap-3">
-            <Checkbox
-              id="termoImagem"
-              checked={!!watch("termoImagem")}
-              onCheckedChange={(c) => setValue("termoImagem", c === true, { shouldValidate: true })}
-              className="mt-1"
-            />
-            <Label htmlFor="termoImagem" className="text-sm leading-relaxed cursor-pointer">
-              Autorizo o uso da minha imagem e do meu veículo em fotos e vídeos para a divulgação da Trilha Meruoca Off Road nas redes sociais. *
-            </Label>
-          </div>
-          {errors.termoImagem?.message && <p className="text-destructive text-xs ml-8">{errors.termoImagem.message}</p>}
-
-          <div className="flex items-start gap-3">
-            <Checkbox
-              id="termoAmbiente"
-              checked={!!watch("termoAmbiente")}
-              onCheckedChange={(c) => setValue("termoAmbiente", c === true, { shouldValidate: true })}
-              className="mt-1"
-            />
-            <Label htmlFor="termoAmbiente" className="text-sm leading-relaxed cursor-pointer">
-              Comprometo-me a respeitar o meio ambiente, não jogar lixo na natureza e seguir o trajeto oficial estipulado pela organização. *
-            </Label>
-          </div>
-          {errors.termoAmbiente?.message && <p className="text-destructive text-xs ml-8">{errors.termoAmbiente.message}</p>}
+      <FormSection title="Termos" number="4" icon={<ClipboardCheck className="w-4 h-4" />}>
+        <div className="space-y-4 bg-secondary/20 p-4 border border-border/40 rounded-sm">
+          <TermItem id="termoSaude" label="Declaro estar apto física e mentalmente." control={control} setValue={setValue} error={errors.termoSaude?.message} />
+          <TermItem id="termoImagem" label="Autorizo o uso de imagem." control={control} setValue={setValue} error={errors.termoImagem?.message} />
+          <TermItem id="termoAmbiente" label="Respeitarei o meio ambiente." control={control} setValue={setValue} error={errors.termoAmbiente?.message} />
         </div>
-      </fieldset>
+      </FormSection>
 
-      <Button type="submit" variant="hero" size="xl" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" /> Enviando...
-          </>
-        ) : (
-          "Enviar inscrição"
-        )}
+      <FormSection title="Pagamento" number="5" icon={<CreditCard className="w-4 h-4" />}>
+        <div className="bg-card border border-primary/20 p-6 rounded-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-primary/10 pb-4">
+            <h4 className="font-display text-xl uppercase text-primary">Inscrição: R$ 80,00</h4>
+            <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-full uppercase font-bold">PIX Ativo</span>
+          </div>
+          <p className="text-foreground/80 font-medium text-sm">Chave Pix: <span className="text-primary select-all">offroadmeruoca@gmail.com</span></p>
+          
+          <div className="pt-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3">Upload do comprovante (PDF ou Imagem)</p>
+            <input type="file" id="comprovante" className="hidden" accept="image/*,application/pdf" {...register("comprovante")} />
+            <Label
+              htmlFor="comprovante"
+              className="flex items-center justify-center gap-3 w-full py-4 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer rounded-sm group text-primary"
+            >
+              <div className="bg-primary text-background p-1.5 rounded-sm group-hover:scale-110 transition-transform shadow-neon-sm">
+                <CheckCircle2 size={16} />
+              </div>
+              <span className="font-condensed font-bold uppercase tracking-[0.2em] text-sm">Anexar Comprovante</span>
+            </Label>
+          </div>
+        </div>
+      </FormSection>
+
+      <Button type="submit" variant="hero" size="xl" className="w-full text-lg" disabled={isSubmitting}>
+        {isSubmitting ? <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Processando...</> : <>Finalizar Inscrição <ShieldCheck className="w-5 h-5 ml-2" /></>}
       </Button>
 
-      <p className="text-xs text-center text-muted-foreground">
-        Vagas limitadas. A confirmação é feita após a aprovação da inscrição
-        e pagamento.
-      </p>
+      <div className="text-[9px] text-center text-muted-foreground uppercase tracking-[0.3em] opacity-50">
+        🔐 Processamento seguro via Firebase Cloud
+      </div>
     </form>
   );
 };
 
-const Field = ({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) => (
-  <div className="space-y-2">
-    <Label className="font-condensed uppercase text-xs tracking-wider text-foreground/80">
-      {label}
-    </Label>
+// --- Sub-componentes auxiliares ---
+
+const FormSection = ({ title, number, icon, children }: { title: string; number: string; icon: React.ReactNode; children: React.ReactNode }) => (
+  <fieldset className="space-y-4 animate-float-up">
+    <legend className="font-display text-2xl text-primary flex items-center gap-3 mb-2">
+      <span className="bg-primary text-background w-8 h-8 flex items-center justify-center clip-slash font-bold text-lg">{number}</span>
+      <span className="flex items-center gap-2">{title} <span className="opacity-30">{icon}</span></span>
+    </legend>
+    <div className="space-y-4">{children}</div>
+  </fieldset>
+);
+
+const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <Label className="font-display uppercase text-[10px] tracking-widest text-primary mb-1 block">{label}</Label>
     {children}
-    {error && <p className="text-destructive text-xs">{error}</p>}
+    <div className="h-3">{error && <p className="text-destructive text-[10px] font-bold uppercase tracking-tighter">{error}</p>}</div>
+  </div>
+);
+
+const RadioField = ({ label, control, name, options, setValue, error, vertical }: any) => {
+  const val = useWatch({ control, name }) as unknown as string;
+  return (
+    <Field label={label} error={error}>
+      <RadioGroup onValueChange={(v) => setValue(name, v, { shouldValidate: true })} value={val || ""} className={cn("flex flex-wrap gap-4", vertical && "flex-col gap-3")}>
+        {options.map((opt: any) => {
+          const value = typeof opt === "string" ? opt : opt.v;
+          const label = typeof opt === "string" ? opt : opt.l;
+          return (
+            <div key={value} className="flex items-center space-x-2">
+              <RadioGroupItem value={value} id={`${name}-${value}`} />
+              <Label htmlFor={`${name}-${value}`} className="cursor-pointer text-sm">{label}</Label>
+            </div>
+          );
+        })}
+      </RadioGroup>
+    </Field>
+  );
+};
+
+const SelectField = ({ label, control, name, options, setValue, error }: any) => {
+  const val = useWatch({ control, name }) as unknown as string;
+  return (
+    <Field label={label} error={error}>
+      <Select onValueChange={(v) => setValue(name, v, { shouldValidate: true })} value={val || ""}>
+        <SelectTrigger className="bg-background/50 border-primary/20"><SelectValue placeholder="Selecione" /></SelectTrigger>
+        <SelectContent>
+          {options.map((opt: any) => {
+            const value = typeof opt === "string" ? opt : opt.v;
+            const label = typeof opt === "string" ? opt : opt.l;
+            return <SelectItem key={value} value={value}>{label}</SelectItem>;
+          })}
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+};
+
+const TermItem = ({ id, label, control, setValue, error }: any) => {
+  const val = useWatch({ control, name: id });
+  return (
+    <div className="space-y-1">
+      <div className="flex items-start gap-3">
+        <Checkbox id={id} checked={!!val} onCheckedChange={(c) => setValue(id, c === true, { shouldValidate: true })} className="mt-1 border-primary/50 data-[state=checked]:bg-primary" />
+        <Label htmlFor={id} className="text-xs leading-snug cursor-pointer text-foreground/90">{label} *</Label>
+      </div>
+      {error && <p className="text-destructive text-[9px] ml-7 uppercase font-bold tracking-tighter">{error}</p>}
+    </div>
+  );
+};
+
+const SuccessState = ({ onReset }: { onReset: () => void }) => (
+  <div className="text-center p-8 md:p-12 bg-card border-2 border-primary shadow-neon animate-float-up rounded-sm">
+    <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-4 animate-bounce" />
+    <h3 className="font-display text-3xl md:text-4xl text-primary text-glow mb-2 italic">Inscrição Enviada!</h3>
+    <p className="text-muted-foreground mb-8 max-w-md mx-auto">Sua vaga está pré-reservada. Analisaremos seu comprovante e entraremos em contato via WhatsApp em breve.</p>
+    <Button variant="outlineNeon" size="lg" onClick={onReset} className="px-12">Inscrever Outro Piloto</Button>
   </div>
 );

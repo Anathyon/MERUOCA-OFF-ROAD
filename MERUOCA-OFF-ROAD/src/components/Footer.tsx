@@ -1,54 +1,97 @@
-import { Instagram, MessageCircle, Mail } from "lucide-react";
-import logo from "@/assets/logo-meruoca.png";
+import { Instagram, MessageCircle, Mail, Youtube, Music } from "lucide-react";
 
+/**
+ * Componente de Rodapé (Footer).
+ * Contém informações sobre o evento, links de navegação rápida e contatos sociais.
+ */
 export const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="relative bg-background border-t border-border pt-16 pb-8">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-neon-edge" style={{ background: "var(--gradient-neon-edge)" }} />
+      {/* Detalhe estético: Linha neon no topo do footer */}
+      <div className="absolute top-0 inset-x-0 h-px bg-linear-gradient from-transparent via-primary to-transparent opacity-50" />
 
       <div className="container-tight">
         <div className="grid md:grid-cols-3 gap-10 mb-10">
-          <div>
-            <img src={logo} alt="Squile Meruoca Off-Road" className="h-16 mb-4" />
-            <p className="text-sm text-muted-foreground">
+          {/* Coluna 1: Branding */}
+          <div className="space-y-4">
+            <img 
+              src="/assets/LOGO-FINAL-MERUOCA-OFFROAD.png" 
+              alt="Squile Meruoca Off-Road" 
+              className="h-16 mb-4 filter drop-shadow-[0_0_8px_rgba(163,230,53,0.3)] hover:scale-105 transition-transform" 
+            />
+            <p className="text-sm text-muted-foreground leading-relaxed">
               1º Trilhão Meruoca Off-Road. Uma celebração da paixão pelas
-              trilhas e pela serra cearense.
+              trilhas e pela exuberante serra cearense. Adrenalina com responsabilidade.
             </p>
           </div>
 
+          {/* Coluna 2: Navegação Interna */}
           <div>
-            <h4 className="font-condensed font-bold uppercase tracking-wider text-primary mb-4">
-              Navegação
+            <h4 className="font-display text-xl text-primary mb-6 tracking-wider">
+              Mapa do Site
             </h4>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#evento" className="text-muted-foreground hover:text-primary transition-colors">Evento</a></li>
-              <li><a href="#trilha" className="text-muted-foreground hover:text-primary transition-colors">A Trilha</a></li>
-              <li><a href="#incluso" className="text-muted-foreground hover:text-primary transition-colors">Incluso</a></li>
-              <li><a href="#inscricao" className="text-muted-foreground hover:text-primary transition-colors">Inscrição</a></li>
-              <li><a href="#faq" className="text-muted-foreground hover:text-primary transition-colors">FAQ</a></li>
+            <ul className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+              {[
+                { href: "#evento", label: "O Evento" },
+                { href: "#trilha", label: "A Trilha" },
+                { href: "#incluso", label: "Incluso" },
+                { href: "#inscricao", label: "Inscrição" },
+                { href: "#faq", label: "Dúvidas" },
+              ].map((link) => (
+                <li key={link.href}>
+                  <a 
+                    href={link.href} 
+                    className="text-muted-foreground hover:text-primary transition-all duration-200 flex items-center gap-2 group"
+                  >
+                    <span className="w-1 h-1 bg-primary/40 rounded-full group-hover:w-2 transition-all" />
+                    {link.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
+          {/* Coluna 3: Redes Sociais e Contato */}
           <div>
-            <h4 className="font-condensed font-bold uppercase tracking-wider text-primary mb-4">
-              Contato
+            <h4 className="font-display text-xl text-primary mb-6 tracking-wider">
+              Conecte-se
             </h4>
-            <div className="flex gap-3">
-              <a href="#" aria-label="Instagram" className="w-10 h-10 flex items-center justify-center border border-border hover:border-primary hover:text-primary transition-colors">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" aria-label="WhatsApp" className="w-10 h-10 flex items-center justify-center border border-border hover:border-primary hover:text-primary transition-colors">
-                <MessageCircle className="w-5 h-5" />
-              </a>
-              <a href="#" aria-label="E-mail" className="w-10 h-10 flex items-center justify-center border border-border hover:border-primary hover:text-primary transition-colors">
-                <Mail className="w-5 h-5" />
-              </a>
+            <div className="flex flex-wrap gap-4">
+              {[
+                { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/p/DW4uhCekXuF/?igsh=MWViMmhrZ3Uwcnh3cQ%3D%3D" },
+                { icon: Music, label: "TikTok", href: "https://www.tiktok.com/@meruocaoffroad?_r=1&_t=ZS-95l2nusMyc0" },
+                { icon: Youtube, label: "YouTube", href: "https://youtube.com/@offroadmeruoca?si=Wy0pqLFRwIneAlcY" },
+                { icon: MessageCircle, label: "WhatsApp", href: "https://wa.me/5588999999999" }, // Placeholder para WhatsApp, já que não foi fornecido
+                { icon: Mail, label: "E-mail", href: "mailto:offroadmeruoca@gmail.com" },
+              ].map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  className="w-12 h-12 flex items-center justify-center border border-border/60 rounded-sm hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-300 group"
+                >
+                  <social.icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </a>
+              ))}
             </div>
+            <p className="mt-6 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
+              Siga para atualizações em tempo real
+            </p>
           </div>
         </div>
 
-        <div className="pt-6 border-t border-border text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Squile Meruoca Off-Road. Todos os direitos reservados.
+        {/* Direitos Autorais e Créditos */}
+        <div className="pt-8 border-t border-border/40 text-center space-y-2">
+          <p className="text-xs text-muted-foreground">
+            © {currentYear} <span className="text-primary/80 font-bold">Squile Meruoca Off-Road</span>. Todos os direitos reservados.
+          </p>
+          <p className="text-[10px] text-muted-foreground/40 uppercase tracking-tighter">
+            Desenvolvido com foco em performance e segurança.
+          </p>
         </div>
       </div>
     </footer>

@@ -13,7 +13,9 @@ export const RegistrationSection = () => {
           <h2 className="font-display text-4xl md:text-6xl mt-3 mb-4">
             Garanta sua <span className="text-primary animate-glow-pulse">vaga</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-muted-foreground max-w-xl mx-auto text-lg">
+            Valor da inscrição: <span className="text-primary font-bold">R$ 80,00</span>
+            <br />
             Preencha o formulário abaixo e entraremos em contato com as
             instruções de pagamento e confirmação.
           </p>
