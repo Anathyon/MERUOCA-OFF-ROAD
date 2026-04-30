@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Footer } from "@/components/Footer";
+import { FirebaseStatus } from "@/components/FirebaseStatus";
 import { Loader2 } from "lucide-react";
 
 /**
@@ -53,6 +54,7 @@ const Index = () => {
       </main>
       
       <Footer />
+      <FirebaseStatus />
     </div>
   );
 };

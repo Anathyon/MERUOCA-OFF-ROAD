@@ -49,7 +49,7 @@ export const registrationSchema = z.object({
   termoSaude: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
   termoImagem: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
   termoAmbiente: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
-  comprovante: z.any().optional(),
+  comprovante: z.any().refine((files) => files && files.length > 0, "O comprovante de pagamento é obrigatório"),
 });
 
 export type RegistrationFormData = z.infer<typeof registrationSchema>;
@@ -113,11 +113,72 @@ export const RegistrationForm = () => {
         return;
       }
 
+      // 1. Processar o comprovante (Imagem ou PDF) como Base64
+      let comprovanteUrl = "";
+      if (data.comprovante && data.comprovante[0]) {
+        const file = data.comprovante[0];
+        
+        if (file.type.startsWith('image/')) {
+          // Comprimir imagem para garantir que fique abaixo de 1MB (limite do Firestore)
+          comprovanteUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+              const img = new Image();
+              img.src = event.target?.result as string;
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_SIZE = 1000; // Reduzido para ser bem seguro
+
+                if (width > height) {
+                  if (width > MAX_SIZE) {
+                    height *= MAX_SIZE / width;
+                    width = MAX_SIZE;
+                  }
+                } else {
+                  if (height > MAX_SIZE) {
+                    width *= MAX_SIZE / height;
+                    height = MAX_SIZE;
+                  }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+                // Qualidade 0.4 para garantir que o documento Firestore fique bem abaixo de 1MB
+                resolve(canvas.toDataURL('image/jpeg', 0.4));
+              };
+              img.onerror = reject;
+            };
+            reader.onerror = reject;
+          });
+        } else {
+          // Se for PDF, apenas converte para base64
+          // Limite rígido de 800KB para evitar estourar o limite de 1MB do documento
+          if (file.size > 800 * 1024) {
+            toast.error("Arquivo PDF muito grande", {
+              description: "Por favor, envie um PDF menor que 800KB ou uma foto do comprovante.",
+            });
+            return;
+          }
+          comprovanteUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+          });
+        }
+      }
+
       const { comprovante, ...registrationData } = data;
       await addDoc(collection(db, "registrations"), {
         ...registrationData,
-        cpf: normalizedCPF, // Salva normalizado para futuras buscas consistentes
+        cpf: normalizedCPF, 
         email: normalizedEmail,
+        comprovanteUrl, // Salva o Base64 aqui
         submittedAt: serverTimestamp(),
         status: "pending",
       });

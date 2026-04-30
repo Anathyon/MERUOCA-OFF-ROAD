@@ -56,15 +56,42 @@ export const Footer = () => {
           {/* Coluna 3: Redes Sociais e Contato */}
           <div>
             <h4 className="font-display text-xl text-primary mb-6 tracking-wider">
-              Conecte-se
+              Atendimento
             </h4>
-            <div className="flex flex-wrap gap-4">
+            <div className="space-y-4 mb-6">
+              <a 
+                href="https://wa.me/558894368177" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
+                  <MessageCircle className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">WhatsApp Suporte</p>
+                  <p>(88) 9436-8177</p>
+                </div>
+              </a>
+              <a 
+                href="mailto:offroadmeruoca@gmail.com" 
+                className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
+                  <Mail className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">E-mail Oficial</p>
+                  <p>offroadmeruoca@gmail.com</p>
+                </div>
+              </a>
+            </div>
+            
+            <div className="flex gap-4">
               {[
                 { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/p/DW4uhCekXuF/?igsh=MWViMmhrZ3Uwcnh3cQ%3D%3D" },
                 { icon: Music, label: "TikTok", href: "https://www.tiktok.com/@meruocaoffroad?_r=1&_t=ZS-95l2nusMyc0" },
                 { icon: Youtube, label: "YouTube", href: "https://youtube.com/@offroadmeruoca?si=Wy0pqLFRwIneAlcY" },
-                { icon: MessageCircle, label: "WhatsApp", href: "https://wa.me/5588999999999" }, // Placeholder para WhatsApp, já que não foi fornecido
-                { icon: Mail, label: "E-mail", href: "mailto:offroadmeruoca@gmail.com" },
               ].map((social) => (
                 <a
                   key={social.label}
@@ -72,15 +99,12 @@ export const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.label}
-                  className="w-12 h-12 flex items-center justify-center border border-border/60 rounded-sm hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-300 group"
+                  className="w-10 h-10 flex items-center justify-center border border-border/60 rounded-sm hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-300 group"
                 >
-                  <social.icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <social.icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 </a>
               ))}
             </div>
-            <p className="mt-6 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-              Siga para atualizações em tempo real
-            </p>
           </div>
         </div>
 
