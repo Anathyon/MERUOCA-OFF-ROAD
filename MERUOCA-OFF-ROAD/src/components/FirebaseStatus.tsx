@@ -28,17 +28,22 @@ export const FirebaseStatus = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
-      {/* Botão de WhatsApp (Suporte) em evidência */}
+      {/* Botão de WhatsApp (Suporte) em evidência com animação pulsante no hover */}
       <a 
         href="https://wa.me/558894368177"
         target="_blank"
         rel="noopener noreferrer"
-        className="pointer-events-auto flex items-center gap-3 bg-emerald-500 text-white px-4 py-2 rounded-full shadow-lg hover:bg-emerald-600 hover:scale-105 transition-all duration-300 group"
+        className="pointer-events-auto flex items-center gap-3 bg-emerald-500 text-white px-5 py-2.5 rounded-full shadow-lg hover:bg-emerald-600 transition-all duration-300 group hover:scale-105 active:scale-95 relative"
       >
-        <span className="text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+        {/* Efeito de Pulso (Ping) no Hover */}
+        <span className="absolute inset-0 rounded-full bg-emerald-500 opacity-0 group-hover:animate-ping group-hover:opacity-20 pointer-events-none"></span>
+        
+        <span className="text-sm font-bold tracking-wide">
           Dúvidas? Fale conosco
         </span>
-        <MessageCircle className="w-6 h-6 fill-white/20" />
+        <div className="bg-white/20 p-1 rounded-full">
+          <MessageCircle className="w-5 h-5 fill-white" />
+        </div>
       </a>
 
       {/* Contador de Pilotos */}
