@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CheckCircle2, Loader2, ShieldCheck, User, Phone, Bike, CreditCard, ClipboardCheck } from "lucide-react";
@@ -49,7 +49,7 @@ export const registrationSchema = z.object({
   termoSaude: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
   termoImagem: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
   termoAmbiente: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
-  comprovante: z.any().refine((files) => files && files.length > 0, "O comprovante de pagamento é obrigatório"),
+  comprovante: z.any().refine((files) => files && files.length > 0 && files[0]?.type?.startsWith('image/'), "O comprovante deve ser uma imagem (Print/Foto)"),
 });
 
 export type RegistrationFormData = z.infer<typeof registrationSchema>;
@@ -79,7 +79,7 @@ export const RegistrationForm = () => {
   useEffect(() => {
     const subscription = watch((value) => {
       const { _gotcha, ...rest } = value;
-      setFormData(rest as any);
+      setFormData(rest as RegistrationFormData);
     });
     return () => subscription.unsubscribe();
   }, [watch, setFormData]);
@@ -189,9 +189,10 @@ export const RegistrationForm = () => {
       setSubmitted(true);
       resetForm();
       reset();
-    } catch (error: any) {
-      console.error("Firebase Error:", error);
-      if (error.message?.includes("not found")) {
+    } catch (err: unknown) {
+      console.error("Firebase Error:", err);
+      const errorMessage = err instanceof Error ? err.message : "";
+      if (errorMessage.includes("not found")) {
         toast.error("Erro de Configuração", {
           description: "O banco de dados Firestore não foi encontrado. Verifique se ele foi criado no console do Firebase.",
         });
@@ -272,8 +273,8 @@ export const RegistrationForm = () => {
           <p className="text-foreground/80 font-medium text-sm">Chave Pix: <span className="text-primary select-all">offroadmeruoca@gmail.com</span></p>
           
           <div className="pt-2">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3">Upload do comprovante (PDF ou Imagem)</p>
-            <input type="file" id="comprovante" className="hidden" accept="image/*,application/pdf" {...register("comprovante")} />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3">Upload do comprovante (Somente Imagem/Print)</p>
+            <input type="file" id="comprovante" className="hidden" accept="image/*" {...register("comprovante")} />
             <Label
               htmlFor="comprovante"
               className="flex items-center justify-center gap-3 w-full py-4 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer rounded-sm group text-primary"
@@ -318,8 +319,8 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
   </div>
 );
 
-const RadioField = ({ label, control, name, options, setValue, error, vertical }: any) => {
-  const val = useWatch({ control, name }) as unknown as string;
+const RadioField = ({ label, control, name, options, setValue, error, vertical }: { label: string, control: Control<RegistrationFormData>, name: keyof RegistrationFormData, options: (string | { v: string, l: string })[], setValue: any, error?: string, vertical?: boolean }) => {
+  const val = useWatch({ control, name }) as string;
   return (
     <Field label={label} error={error}>
       <RadioGroup onValueChange={(v) => setValue(name, v, { shouldValidate: true })} value={val || ""} className={cn("flex flex-wrap gap-4", vertical && "flex-col gap-3")}>
@@ -338,8 +339,8 @@ const RadioField = ({ label, control, name, options, setValue, error, vertical }
   );
 };
 
-const SelectField = ({ label, control, name, options, setValue, error }: any) => {
-  const val = useWatch({ control, name }) as unknown as string;
+const SelectField = ({ label, control, name, options, setValue, error }: { label: string, control: Control<RegistrationFormData>, name: keyof RegistrationFormData, options: (string | { v: string, l: string })[], setValue: any, error?: string }) => {
+  const val = useWatch({ control, name }) as string;
   return (
     <Field label={label} error={error}>
       <Select onValueChange={(v) => setValue(name, v, { shouldValidate: true })} value={val || ""}>
@@ -356,7 +357,7 @@ const SelectField = ({ label, control, name, options, setValue, error }: any) =>
   );
 };
 
-const TermItem = ({ id, label, control, setValue, error }: any) => {
+const TermItem = ({ id, label, control, setValue, error }: { id: keyof RegistrationFormData, label: string, control: Control<RegistrationFormData>, setValue: any, error?: string }) => {
   const val = useWatch({ control, name: id });
   return (
     <div className="space-y-1">

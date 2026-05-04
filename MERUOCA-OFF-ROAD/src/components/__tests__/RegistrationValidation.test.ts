@@ -22,6 +22,7 @@ describe("Registration Schema Validation", () => {
     termoSaude: true,
     termoImagem: true,
     termoAmbiente: true,
+    comprovante: [{ name: "receipt.jpg", type: "image/jpeg" }], // Adicionado tipo para passar na validação
   };
 
   it("should validate a complete valid data object", () => {

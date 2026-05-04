@@ -14,6 +14,7 @@ const TrailSection = lazy(() => import("@/components/TrailSection").then(m => ({
 const MeruocaSection = lazy(() => import("@/components/MeruocaSection").then(m => ({ default: m.MeruocaSection })));
 const IncludedSection = lazy(() => import("@/components/IncludedSection").then(m => ({ default: m.IncludedSection })));
 const GallerySection = lazy(() => import("@/components/GallerySection").then(m => ({ default: m.GallerySection })));
+const ParticipantsSection = lazy(() => import("@/components/ParticipantsSection").then(m => ({ default: m.ParticipantsSection })));
 const RegistrationSection = lazy(() => import("@/components/RegistrationSection").then(m => ({ default: m.RegistrationSection })));
 const FaqSection = lazy(() => import("@/components/FaqSection").then(m => ({ default: m.FaqSection })));
 const CtaBanner = lazy(() => import("@/components/CtaBanner").then(m => ({ default: m.CtaBanner })));
@@ -47,6 +48,7 @@ const Index = () => {
           <MeruocaSection />
           <IncludedSection />
           <GallerySection />
+          <ParticipantsSection />
           <RegistrationSection />
           <FaqSection />
           <CtaBanner />

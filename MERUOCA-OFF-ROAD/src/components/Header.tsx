@@ -10,6 +10,7 @@ const links = [
   { href: "#trilha", label: "A Trilha" },
   { href: "#incluso", label: "Incluso" },
   { href: "#galeria", label: "Galeria" },
+  { href: "#pilotos", label: "Pilotos" },
   { href: "#faq", label: "FAQ" },
 ];
 
