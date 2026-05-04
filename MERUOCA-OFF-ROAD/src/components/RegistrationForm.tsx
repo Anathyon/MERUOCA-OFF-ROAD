@@ -84,21 +84,37 @@ export const RegistrationForm = () => {
     return () => subscription.unsubscribe();
   }, [watch, setFormData]);
   
-  const normalize = (val: string) => val.replace(/\D/g, "");
+  const sanitize = (val: string) => val.replace(/<[^>]*>?/gm, "").trim();
 
   const onSubmit = async (data: RegistrationFormData) => {
     if (data._gotcha) return; 
     
+    // Evita múltiplos cliques rápidos (Rate Limiting simples)
+    if (isSubmitting) return;
+    
     try {
-      const normalizedCPF = normalize(data.cpf);
       const normalizedEmail = data.email.toLowerCase().trim();
+
+      // Sanitização de campos de texto (XSS Protection)
+      const sanitizedData = {
+        ...data,
+        nome: sanitize(data.nome),
+        apelidoNumero: data.apelidoNumero ? sanitize(data.apelidoNumero) : "",
+        email: normalizedEmail,
+        cidade: sanitize(data.cidade),
+        equipe: data.equipe ? sanitize(data.equipe) : "",
+        modeloMoto: sanitize(data.modeloMoto),
+        observacoes: data.observacoes ? sanitize(data.observacoes) : "",
+        emergenciaNome: sanitize(data.emergenciaNome),
+        status: "pending",
+        submittedAt: serverTimestamp(),
+      };
 
       // Verificação de duplicidade (CPF ou E-mail)
       const q = query(
         collection(db, "registrations"),
         or(
-          where("cpf", "==", data.cpf), // Verifica original
-          where("cpf", "==", normalizedCPF), // Verifica normalizado
+          where("cpf", "==", data.cpf),
           where("email", "==", normalizedEmail)
         )
       );
@@ -113,75 +129,54 @@ export const RegistrationForm = () => {
         return;
       }
 
-      // 1. Processar o comprovante (Imagem ou PDF) como Base64
+      // 1. Processar o comprovante (Apenas Imagem) como Base64
       let comprovanteUrl = "";
       if (data.comprovante && data.comprovante[0]) {
         const file = data.comprovante[0];
         
-        if (file.type.startsWith('image/')) {
-          // Comprimir imagem para garantir que fique abaixo de 1MB (limite do Firestore)
-          comprovanteUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-              const img = new Image();
-              img.src = event.target?.result as string;
-              img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                const MAX_SIZE = 1000; // Reduzido para ser bem seguro
+        // Comprimir imagem para garantir que fique abaixo de 1MB (limite do Firestore)
+        comprovanteUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              const MAX_SIZE = 1000;
 
-                if (width > height) {
-                  if (width > MAX_SIZE) {
-                    height *= MAX_SIZE / width;
-                    width = MAX_SIZE;
-                  }
-                } else {
-                  if (height > MAX_SIZE) {
-                    width *= MAX_SIZE / height;
-                    height = MAX_SIZE;
-                  }
+              if (width > height) {
+                if (width > MAX_SIZE) {
+                  height *= MAX_SIZE / width;
+                  width = MAX_SIZE;
                 }
+              } else {
+                if (height > MAX_SIZE) {
+                  width *= MAX_SIZE / height;
+                  height = MAX_SIZE;
+                }
+              }
 
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
-                // Qualidade 0.4 para garantir que o documento Firestore fique bem abaixo de 1MB
-                resolve(canvas.toDataURL('image/jpeg', 0.4));
-              };
-              img.onerror = reject;
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.4));
             };
-            reader.onerror = reject;
-          });
-        } else {
-          // Se for PDF, apenas converte para base64
-          // Limite rígido de 800KB para evitar estourar o limite de 1MB do documento
-          if (file.size > 800 * 1024) {
-            toast.error("Arquivo PDF muito grande", {
-              description: "Por favor, envie um PDF menor que 800KB ou uma foto do comprovante.",
-            });
-            return;
-          }
-          comprovanteUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-          });
-        }
+            img.onerror = reject;
+          };
+          reader.onerror = reject;
+        });
       }
 
-      const { comprovante, ...registrationData } = data;
+      const { comprovante, _gotcha, ...rest } = sanitizedData;
       await addDoc(collection(db, "registrations"), {
-        ...registrationData,
-        cpf: normalizedCPF, 
-        email: normalizedEmail,
-        comprovanteUrl, // Salva o Base64 aqui
-        submittedAt: serverTimestamp(),
-        status: "pending",
+        ...rest,
+        comprovanteUrl,
       });
+
       toast.success("Inscrição enviada!", {
         description: "Seus dados foram salvos no sistema.",
         icon: <ShieldCheck className="w-5 h-5 text-primary" />,
