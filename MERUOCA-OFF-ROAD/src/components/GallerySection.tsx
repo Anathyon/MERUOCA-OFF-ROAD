@@ -2,8 +2,18 @@ import { useState } from "react";
 import { Reveal } from "./Reveal";
 import { Play, X, ZoomIn } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { Skeleton } from "./ui/skeleton";
+import { cn } from "@/lib/utils";
 
-const localMediaItems = [
+interface MediaItem {
+  type: "image" | "video";
+  src: string;
+  alt?: string;
+  title?: string;
+  span: string;
+}
+
+const localMediaItems: MediaItem[] = [
   {
     type: "image",
     src: "/assets/Acude-Jenipapo.jpg",
@@ -103,7 +113,7 @@ const localMediaItems = [
 ];
 
 export const GallerySection = () => {
-  const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const mediaItems = localMediaItems;
 
   return (
@@ -125,57 +135,18 @@ export const GallerySection = () => {
 
         <Dialog.Root open={!!selectedMedia} onOpenChange={(open) => !open && setSelectedMedia(null)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 auto-rows-[250px]">
-            {mediaItems.map((item: any, i: number) => (
+            {mediaItems.map((item: MediaItem, i: number) => (
               <Reveal
                 key={item.src + i}
                 variant="zoom"
                 delay={i * 50}
                 className={`relative group overflow-hidden rounded-sm border border-primary/20 cursor-pointer ${item.span}`}
               >
-                <div onClick={() => setSelectedMedia(item)} className="w-full h-full">
-                  {item.type === "image" ? (
-                    <img
-                      src={item.src}
-                      alt={item.alt}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="relative w-full h-full">
-                      <video
-                        src={item.src}
-                        className="w-full h-full object-cover"
-                        muted
-                        loop
-                        playsInline
-                        autoPlay
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Overlay sutil e Ícone de Zoom/Play */}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[2px]">
-                    <div className="w-14 h-14 rounded-full border-2 border-primary flex items-center justify-center bg-background/20 group-hover:scale-110 transition-transform">
-                      {item.type === "video" ? (
-                        <Play className="w-7 h-7 text-primary fill-primary ml-1" />
-                      ) : (
-                        <ZoomIn className="w-7 h-7 text-primary" />
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="absolute inset-0 bg-linear-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
-                  
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <p className="font-display text-lg text-white uppercase tracking-wider translate-y-2 group-hover:translate-y-0 transition-transform truncate">
-                      {item.alt || item.title}
-                    </p>
-                  </div>
-                </div>
+                <MediaThumbnail item={item} onClick={() => setSelectedMedia(item)} />
               </Reveal>
             ))}
           </div>
-
+          
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 bg-background/95 backdrop-blur-md z-100 animate-in fade-in duration-300" />
             <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-5xl z-100 outline-none animate-in zoom-in-95 duration-300">
@@ -185,11 +156,13 @@ export const GallerySection = () => {
                 </Dialog.Close>
 
                 {selectedMedia?.type === "image" ? (
-                  <img
-                    src={selectedMedia.src}
-                    alt={selectedMedia.alt}
-                    className="w-full max-h-[85vh] object-contain mx-auto"
-                  />
+                  <div className="relative">
+                     <img
+                      src={selectedMedia.src}
+                      alt={selectedMedia.alt}
+                      className="w-full max-h-[85vh] object-contain mx-auto"
+                    />
+                  </div>
                 ) : (
                   <video
                     src={selectedMedia?.src}
@@ -211,5 +184,71 @@ export const GallerySection = () => {
         </Dialog.Root>
       </div>
     </section>
+  );
+};
+
+const MediaThumbnail = ({ item, onClick }: { item: MediaItem; onClick: () => void }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div onClick={onClick} className="w-full h-full relative">
+      {!isLoaded && <Skeleton className="absolute inset-0 bg-primary/5" />}
+      
+      {item.type === "image" ? (
+        <img
+          src={item.src}
+          alt={item.alt}
+          className={cn(
+            "w-full h-full object-cover transition-all duration-700 group-hover:scale-110",
+            !isLoaded ? "opacity-0" : "opacity-100"
+          )}
+          loading="lazy"
+          onLoad={() => setIsLoaded(true)}
+        />
+      ) : (
+        <div className="relative w-full h-full">
+          <video
+            src={item.src}
+            className={cn(
+              "w-full h-full object-cover",
+              !isLoaded ? "opacity-0" : "opacity-100"
+            )}
+            muted
+            loop
+            playsInline
+            autoPlay
+            onLoadedData={() => setIsLoaded(true)}
+          />
+        </div>
+      )}
+      
+      {/* Overlay sutil e Ícone de Zoom/Play */}
+      <div className={cn(
+        "absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[2px]",
+        !isLoaded && "hidden"
+      )}>
+        <div className="w-14 h-14 rounded-full border-2 border-primary flex items-center justify-center bg-background/20 group-hover:scale-110 transition-transform">
+          {item.type === "video" ? (
+            <Play className="w-7 h-7 text-primary fill-primary ml-1" />
+          ) : (
+            <ZoomIn className="w-7 h-7 text-primary" />
+          )}
+        </div>
+      </div>
+      
+      <div className={cn(
+        "absolute inset-0 bg-linear-gradient-to-t from-black/80 via-transparent to-transparent opacity-80",
+        !isLoaded && "hidden"
+      )} />
+      
+      <div className={cn(
+        "absolute bottom-4 left-4 right-4",
+        !isLoaded && "hidden"
+      )}>
+        <p className="font-display text-lg text-white uppercase tracking-wider translate-y-2 group-hover:translate-y-0 transition-transform truncate">
+          {item.alt || item.title}
+        </p>
+      </div>
+    </div>
   );
 };

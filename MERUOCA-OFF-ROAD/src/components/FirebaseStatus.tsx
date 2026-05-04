@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Users, Loader2, MessageCircle } from "lucide-react";
 
@@ -14,8 +14,10 @@ export const FirebaseStatus = () => {
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        const allDocs = await getDocs(collection(db, "registrations"));
-        setCount(allDocs.size);
+        // Agora conta apenas pilotos que foram CONFIRMADOS no painel admin
+        const q = query(collection(db, "registrations"), where("status", "==", "confirmed"));
+        const snapshot = await getDocs(q);
+        setCount(snapshot.size);
         setStatus("connected");
       } catch (err) {
         console.error("Erro ao buscar contagem:", err);

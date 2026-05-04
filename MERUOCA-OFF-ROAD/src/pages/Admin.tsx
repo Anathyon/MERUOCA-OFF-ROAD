@@ -4,6 +4,7 @@ import { signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, 
   LogOut, 
@@ -222,12 +223,15 @@ const Admin = () => {
               </thead>
               <tbody className="divide-y divide-border/50">
                 {loading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
-                      <p className="text-muted-foreground uppercase text-xs tracking-widest">Carregando dados...</p>
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="border-b border-border/50">
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-32 bg-primary/10" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-primary/10" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-28 bg-primary/10" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-primary/10" /></td>
+                      <td className="px-6 py-4 text-right flex justify-end gap-2"><Skeleton className="h-8 w-8 bg-primary/10" /><Skeleton className="h-8 w-8 bg-primary/10" /></td>
+                    </tr>
+                  ))
                 ) : filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center text-muted-foreground">
@@ -459,21 +463,5 @@ function cn(...inputs: unknown[]) {
   return inputs.filter(Boolean).join(" ");
 }
 
-const Loader2 = ({ className, size = 24 }: { className?: string; size?: number }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
-);
 
 export default Admin;

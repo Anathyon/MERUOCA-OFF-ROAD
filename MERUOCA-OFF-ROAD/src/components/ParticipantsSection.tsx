@@ -3,6 +3,7 @@ import { collection, query, where, orderBy, onSnapshot } from "firebase/firestor
 import { db } from "@/lib/firebase";
 import { Reveal } from "./Reveal";
 import { ShieldCheck, Bike, Trophy } from "lucide-react";
+import { Skeleton } from "./ui/skeleton";
 
 interface ConfirmedPilot {
   id: string;
@@ -66,8 +67,17 @@ export const ParticipantsSection = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-24 bg-card/50 border border-border animate-pulse rounded-sm" />
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-card border border-border p-4 rounded-sm flex items-center gap-4">
+                <Skeleton className="h-10 w-10 bg-secondary" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-3/4" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </div>
             ))
           ) : (
             pilots.map((pilot, index) => (
