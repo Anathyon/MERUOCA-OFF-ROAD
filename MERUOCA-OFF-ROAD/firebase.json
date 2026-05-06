@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "meruocaoffroad-af4c9",
     "public": "dist",
     "ignore": [
       "firebase.json",
