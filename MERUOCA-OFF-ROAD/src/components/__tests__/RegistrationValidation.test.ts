@@ -4,7 +4,6 @@ import { registrationSchema } from "../RegistrationForm";
 describe("Registration Schema Validation", () => {
   const validData = {
     nome: "João Silva",
-    cpf: "123.456.789-00",
     nascimento: "1990-01-01",
     email: "joao@email.com",
     telefone: "88999999999",
@@ -38,10 +37,6 @@ describe("Registration Schema Validation", () => {
     }
   });
 
-  it("should fail if CPF is invalid", () => {
-    const result = registrationSchema.safeParse({ ...validData, cpf: "123" });
-    expect(result.success).toBe(false);
-  });
 
   it("should fail if terms are not accepted", () => {
     const result = registrationSchema.safeParse({ ...validData, termoSaude: false });

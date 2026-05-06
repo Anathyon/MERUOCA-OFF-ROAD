@@ -19,7 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { useRegistrationStore } from "@/store/useRegistrationStore";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, where, getDocs, or } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 
 /**
@@ -29,7 +29,6 @@ export const registrationSchema = z.object({
   _gotcha: z.string().max(0).optional(),
   nome: z.string().trim().min(3, "Informe seu nome completo").max(120),
   apelidoNumero: z.string().trim().max(50).optional(),
-  cpf: z.string().trim().regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/, "CPF inválido (000.000.000-00)"),
   nascimento: z.string().min(1, "Informe sua data de nascimento"),
   email: z.string().trim().email("E-mail inválido").toLowerCase(),
   telefone: z.string().trim().min(10, "Telefone inválido"),
@@ -110,20 +109,17 @@ export const RegistrationForm = () => {
         submittedAt: serverTimestamp(),
       };
 
-      // Verificação de duplicidade (CPF ou E-mail)
+      // Verificação de duplicidade (Apenas por E-mail)
       const q = query(
         collection(db, "registrations"),
-        or(
-          where("cpf", "==", data.cpf),
-          where("email", "==", normalizedEmail)
-        )
+        where("email", "==", normalizedEmail)
       );
       
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
         toast.error("Inscrição já realizada", {
-          description: "Já existe um cadastro com este CPF ou E-mail. Se precisar alterar algo, entre em contato.",
+          description: "Já existe um cadastro com este E-mail. Se precisar alterar algo, entre em contato.",
           icon: <ShieldCheck className="w-5 h-5 text-destructive" />,
         });
         return;
@@ -206,20 +202,19 @@ export const RegistrationForm = () => {
       <FormSection title="Dados Pessoais" number="1" icon={<User className="w-4 h-4" />}>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Nome completo *" error={errors.nome?.message}><Input {...register("nome")} placeholder="Nome do Piloto" /></Field>
-          <Field label="Apelido / Número" error={errors.apelidoNumero?.message}><Input {...register("apelidoNumero")} placeholder="Como prefere ser chamado" /></Field>
-        </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <Field label="CPF *" error={errors.cpf?.message}><Input {...register("cpf")} placeholder="000.000.000-00" /></Field>
           <Field label="Nascimento *" error={errors.nascimento?.message}><Input type="date" {...register("nascimento")} className="block" /></Field>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="E-mail *" error={errors.email?.message}><Input type="email" {...register("email")} placeholder="seu@email.com" /></Field>
           <Field label="Telefone *" error={errors.telefone?.message}><Input {...register("telefone")} placeholder="(00) 00000-0000" /></Field>
         </div>
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
+          <Field label="Apelido / Número" error={errors.apelidoNumero?.message}><Input {...register("apelidoNumero")} placeholder="Como prefere ser chamado" /></Field>
+          <Field label="Equipe" error={errors.equipe?.message}><Input {...register("equipe")} /></Field>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
           <Field label="Cidade *" error={errors.cidade?.message}><Input {...register("cidade")} /></Field>
           <Field label="UF *" error={errors.estado?.message}><Input {...register("estado")} maxLength={2} /></Field>
-          <Field label="Equipe" error={errors.equipe?.message}><Input {...register("equipe")} /></Field>
         </div>
       </FormSection>
 

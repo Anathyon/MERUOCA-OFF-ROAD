@@ -32,7 +32,6 @@ interface PilotRegistration {
   id: string;
   nome: string;
   apelidoNumero?: string;
-  cpf: string;
   nascimento: string;
   email: string;
   telefone: string;
@@ -96,7 +95,6 @@ const Admin = () => {
     const term = searchTerm.toLowerCase();
     return registrations.filter(r => 
       r.nome.toLowerCase().includes(term) || 
-      r.cpf.includes(term) || 
       r.email.toLowerCase().includes(term) ||
       r.apelidoNumero?.toLowerCase().includes(term)
     );
@@ -136,13 +134,13 @@ const Admin = () => {
    */
   const exportToCSV = () => {
     const headers = [
-      "Nome", "Apelido/Nº", "CPF", "Nascimento", "E-mail", "WhatsApp", 
+      "Nome", "Apelido/Nº", "Nascimento", "E-mail", "WhatsApp", 
       "Cidade", "Estado", "Equipe", "Emergência Nome", "Emergência Fone", 
       "Modelo", "Cilindrada", "Modalidade", "Nível", "Hard?", "Sangue", "Camisa", "Obs", "Status"
     ];
     
     const rows = filteredData.map((r: PilotRegistration) => [
-      `"${r.nome}"`, `"${r.apelidoNumero || ""}"`, `"${r.cpf}"`, `"${r.nascimento}"`, `"${r.email}"`, `"${r.telefone}"`,
+      `"${r.nome}"`, `"${r.apelidoNumero || ""}"`, `"${r.nascimento}"`, `"${r.email}"`, `"${r.telefone}"`,
       `"${r.cidade}"`, `"${r.estado}"`, `"${r.equipe || ""}"`, `"${r.emergenciaNome}"`, `"${r.emergenciaTelefone}"`,
       `"${r.modeloMoto}"`, `"${r.cilindrada}"`, `"${r.modalidade}"`, `"${r.nivel}"`, `"${r.participarHard}"`, 
       `"${r.tipoSanguineo}"`, `"${r.camisa}"`, `"${r.observacoes || ""}"`, `"${r.status}"`
@@ -190,7 +188,7 @@ const Admin = () => {
           <div className="relative w-full md:w-96 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
-              placeholder="Buscar por nome, CPF ou e-mail..." 
+              placeholder="Buscar por nome ou e-mail..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 bg-card border-border/50 focus:border-primary/50 h-12"
@@ -246,7 +244,6 @@ const Admin = () => {
                           <span className="font-bold text-foreground group-hover:text-primary transition-colors">
                             {reg.nome} {reg.apelidoNumero && <span className="text-primary/70 font-normal ml-1">({reg.apelidoNumero})</span>}
                           </span>
-                          <span className="text-xs text-muted-foreground font-mono">{reg.cpf}</span>
                           <span className="text-[10px] text-muted-foreground mt-1">{reg.email}</span>
                         </div>
                       </td>
@@ -357,7 +354,6 @@ const Admin = () => {
                   <div className="space-y-2">
                     <DetailItem label="Nome Completo" value={selectedPilot.nome} />
                     <DetailItem label="Apelido / Número" value={selectedPilot.apelidoNumero || "N/A"} />
-                    <DetailItem label="CPF" value={selectedPilot.cpf} />
                     <DetailItem label="Nascimento" value={selectedPilot.nascimento} />
                   </div>
                 </div>

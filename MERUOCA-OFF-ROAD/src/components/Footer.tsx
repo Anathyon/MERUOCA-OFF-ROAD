@@ -60,7 +60,7 @@ export const Footer = () => {
             </h4>
             <div className="space-y-4 mb-6">
               <a 
-                href="https://wa.me/558894368177" 
+                href="https://wa.me/558894867591" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group"
@@ -69,8 +69,8 @@ export const Footer = () => {
                   <MessageCircle className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <p className="font-bold text-foreground">WhatsApp Suporte</p>
-                  <p>(88) 9436-8177</p>
+                  <p className="font-bold text-foreground">WhatsApp Oficial</p>
+                  <p>(88) 9486-7591</p>
                 </div>
               </a>
               <a 
