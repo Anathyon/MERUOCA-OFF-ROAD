@@ -48,7 +48,7 @@ export const ParticipantsSection = () => {
     return () => unsubscribe();
   }, []);
 
-  if (!loading && pilots.length === 0) return null;
+  if (!loading && pilots.length < 50) return null;
 
   return (
     <section id="pilotos" className="py-20 bg-secondary/20 relative overflow-hidden">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useConfirmedCount } from "@/hooks/useConfirmedCount";
 
 /**
  * Definição dos links de navegação para facilitar a manutenção.
@@ -19,9 +20,10 @@ const links = [
  * Gerencia a navegação principal, o estado de rolagem (scrolled) e o menu mobile.
  */
 export const Header = () => {
+  const { count } = useConfirmedCount();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-
+  
   // Monitora o scroll da página para aplicar estilos dinâmicos (transparência vs blur)
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -29,6 +31,8 @@ export const Header = () => {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const visibleLinks = links.filter(l => l.href !== "#pilotos" || count >= 50);
 
   return (
     <header
@@ -50,7 +54,7 @@ export const Header = () => {
 
         {/* Navegação Desktop */}
         <nav className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
+          {visibleLinks.map((l) => (
             <a
               key={l.href}
               href={l.href}
@@ -78,7 +82,7 @@ export const Header = () => {
       {open && (
         <div className="md:hidden bg-background/95 backdrop-blur-lg border-t border-border animate-in fade-in slide-in-from-top-4 duration-300">
           <nav className="px-4 sm:px-8 py-6 flex flex-col gap-5">
-            {links.map((l) => (
+            {visibleLinks.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
