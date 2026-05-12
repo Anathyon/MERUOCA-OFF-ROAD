@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
+import emailjs from '@emailjs/browser';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -106,6 +107,45 @@ const Admin = () => {
   const handleStatusChange = async (id: string, newStatus: PilotRegistration["status"]) => {
     try {
       await updateDoc(doc(db, "registrations", id), { status: newStatus });
+      
+      // Enviar e-mail de confirmação apenas se o status for "confirmed"
+      if (newStatus === "confirmed") {
+        const registration = registrations.find(r => r.id === id);
+        if (registration && registration.email) {
+          const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+          const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+          const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+          if (serviceId && templateId && publicKey) {
+            try {
+              // Payload com nomes de variáveis comuns para garantir compatibilidade
+              const templateParams = {
+                nome: registration.nome,
+                to_name: registration.nome,
+                email: registration.email,
+                to_email: registration.email, // Nome comum usado em templates do EmailJS
+                apelido: registration.apelidoNumero || "N/A",
+                modelo_moto: registration.modeloMoto,
+                modalidade: registration.modalidade,
+                cidade: registration.cidade,
+                estado: registration.estado,
+                whatsapp: registration.telefone,
+              };
+
+              console.log("Enviando e-mail via EmailJS...", templateParams);
+              
+              await emailjs.send(serviceId, templateId, templateParams, publicKey);
+              toast.success("E-mail de confirmação enviado com sucesso!");
+            } catch (emailErr) {
+              console.error("Erro detalhado ao enviar e-mail:", emailErr);
+              toast.error("Status atualizado, mas houve erro no envio do e-mail.");
+            }
+          }
+        } else {
+          console.warn("Piloto não encontrado ou e-mail ausente para ID:", id);
+        }
+      }
+
       toast.success(`Status atualizado para ${newStatus}`);
     } catch (err) {
       console.error("Status update error:", err);
