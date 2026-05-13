@@ -63,7 +63,7 @@ const Admin = () => {
   const [registrations, setRegistrations] = useState<PilotRegistration[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedProof, setSelectedProof] = useState<string | null>(null);
+  const [selectedProof, setSelectedProof] = useState<{ url: string, title: string } | null>(null);
   const [selectedPilot, setSelectedPilot] = useState<PilotRegistration | null>(null);
 
   /**
@@ -322,7 +322,7 @@ const Admin = () => {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 text-primary hover:bg-primary/10" 
-                              onClick={() => setSelectedProof(reg.comprovanteUrl!)}
+                              onClick={() => setSelectedProof({ url: reg.comprovanteUrl!, title: "Comprovante de Pagamento" })}
                               title="Ver Comprovante"
                             >
                               <Eye size={16} />
@@ -368,14 +368,16 @@ const Admin = () => {
         </div>
       </main>
 
-      {/* Modal para ver Comprovante */}
+      {/* Modal para ver Arquivos */}
       <Dialog open={!!selectedProof} onOpenChange={(open) => !open && setSelectedProof(null)}>
         <DialogContent className="max-w-3xl bg-card border-primary/20">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl uppercase text-primary">Comprovante de Pagamento</DialogTitle>
+            <DialogTitle className="font-display text-2xl uppercase text-primary">
+              {selectedProof?.title}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
-            <img src={selectedProof || ""} alt="Comprovante" className="max-h-[70vh] object-contain rounded-sm border border-border shadow-neon-sm" />
+            <img src={selectedProof?.url || ""} alt="Documento" className="max-h-[70vh] object-contain rounded-sm border border-border shadow-neon-sm" />
           </div>
         </DialogContent>
       </Dialog>
@@ -446,10 +448,10 @@ const Admin = () => {
                 {selectedPilot.comprovanteUrl && (
                   <div className="pt-4">
                     <Button 
-                      className="w-full gap-2 border-primary/30" 
+                      className="w-full gap-2 border-border/40" 
                       variant="outline" 
                       onClick={() => {
-                        setSelectedProof(selectedPilot.comprovanteUrl!);
+                        setSelectedProof({ url: selectedPilot.comprovanteUrl!, title: "Comprovante de Pagamento" });
                         setSelectedPilot(null);
                       }}
                     >
@@ -464,7 +466,7 @@ const Admin = () => {
                       className="w-full gap-2" 
                       variant="outlineNeon" 
                       onClick={() => {
-                        setSelectedProof(selectedPilot.fotoPilotoUrl!);
+                        setSelectedProof({ url: selectedPilot.fotoPilotoUrl!, title: "Foto do Piloto" });
                         setSelectedPilot(null);
                       }}
                     >
