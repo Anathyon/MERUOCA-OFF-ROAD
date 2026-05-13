@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm, useWatch, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Loader2, ShieldCheck, User, Phone, Bike, CreditCard, ClipboardCheck } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, User, Phone, Bike, CreditCard, ClipboardCheck, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
@@ -33,16 +41,15 @@ export const registrationSchema = z.object({
   email: z.string().trim().email("E-mail inválido").toLowerCase(),
   telefone: z.string().trim().min(10, "Telefone inválido"),
   cidade: z.string().trim().min(2, "Informe sua cidade"),
-  estado: z.string().trim().min(2, "UF").max(2).toUpperCase(),
   equipe: z.string().trim().max(100).optional(),
-  emergenciaNome: z.string().trim().min(3, "Informe um contato"),
-  emergenciaTelefone: z.string().trim().min(10, "Telefone inválido"),
-  modeloMoto: z.string().trim().min(2, "Informe o modelo"),
-  cilindrada: z.string().min(1, "Selecione"),
+  emergenciaNome: z.string().trim().max(100).optional(),
+  emergenciaTelefone: z.string().trim().max(20).optional(),
+  modeloMoto: z.string().trim().max(100).optional(),
+  cilindrada: z.string().optional(),
   modalidade: z.string().min(1, "Selecione"),
   nivel: z.string().min(1, "Selecione"),
   participarHard: z.string().min(1, "Selecione"),
-  tipoSanguineo: z.string().min(1, "Selecione"),
+  tipoSanguineo: z.string().optional(),
   camisa: z.string().min(1, "Selecione"),
   observacoes: z.string().max(500).optional(),
   termoSaude: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
@@ -104,7 +111,10 @@ export const RegistrationForm = () => {
         equipe: data.equipe ? sanitize(data.equipe) : "",
         modeloMoto: sanitize(data.modeloMoto),
         observacoes: data.observacoes ? sanitize(data.observacoes) : "",
-        emergenciaNome: sanitize(data.emergenciaNome),
+        emergenciaNome: data.emergenciaNome ? sanitize(data.emergenciaNome) : "",
+        emergenciaTelefone: data.emergenciaTelefone ? sanitize(data.emergenciaTelefone) : "",
+        tipoSanguineo: data.tipoSanguineo || "Não Informado",
+        cilindrada: data.modalidade === "UTV" ? "UTV" : data.cilindrada,
         status: "pending",
         submittedAt: serverTimestamp(),
       };
@@ -214,33 +224,46 @@ export const RegistrationForm = () => {
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Cidade *" error={errors.cidade?.message}><Input {...register("cidade")} /></Field>
-          <Field label="UF *" error={errors.estado?.message}><Input {...register("estado")} maxLength={2} /></Field>
         </div>
       </FormSection>
 
       <FormSection title="Emergência" number="2" icon={<Phone className="w-4 h-4" />}>
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Nome do Contato *" error={errors.emergenciaNome?.message}><Input {...register("emergenciaNome")} /></Field>
-          <Field label="Telefone de Emergência *" error={errors.emergenciaTelefone?.message}><Input {...register("emergenciaTelefone")} /></Field>
+          <Field label="Nome do Contato" error={errors.emergenciaNome?.message}><Input {...register("emergenciaNome")} /></Field>
+          <Field label="Telefone de Emergência" error={errors.emergenciaTelefone?.message}><Input {...register("emergenciaTelefone")} /></Field>
         </div>
       </FormSection>
 
       <FormSection title="Veículo & Nível" number="3" icon={<Bike className="w-4 h-4" />}>
         <div className="grid md:grid-cols-2 gap-6">
-          <RadioField label="Modalidade *" control={control} name="modalidade" options={["Moto", "Quadriciclo", "4X4"]} setValue={setValue} error={errors.modalidade?.message} />
+          <RadioField label="Modalidade *" control={control} name="modalidade" options={["Moto", "Quadriciclo", "4X4", "UTV"]} setValue={setValue} error={errors.modalidade?.message} />
           <RadioField label="Participará do HARD? *" control={control} name="participarHard" options={["SIM", "NÃO"]} setValue={setValue} error={errors.participarHard?.message} />
         </div>
         <div className="grid md:grid-cols-2 gap-4">
-          <Field label="Marca e Modelo *" error={errors.modeloMoto?.message}><Input {...register("modeloMoto")} placeholder="Ex: Honda CRF 250F" /></Field>
-          <SelectField label="Cilindrada *" control={control} name="cilindrada" setValue={setValue} error={errors.cilindrada?.message} options={[
-            { v: "ate-160", l: "Até 160cc" }, { v: "161-250", l: "161 a 250cc" }, { v: "251-450", l: "251 a 450cc" }, { v: "acima-450", l: "Acima de 450cc" }, { v: "n-a", l: "N/A" }
-          ]} />
+          <Field label="Marca e Modelo" error={errors.modeloMoto?.message}><Input {...register("modeloMoto")} placeholder="Ex: Honda CRF 250F" /></Field>
+          {watch("modalidade") !== "UTV" && (
+            <SelectField label="Cilindrada" control={control} name="cilindrada" setValue={setValue} error={errors.cilindrada?.message} options={[
+              { v: "ate-160", l: "Até 160cc" }, { v: "161-250", l: "161 a 250cc" }, { v: "251-450", l: "251 a 450cc" }, { v: "acima-450", l: "Acima de 450cc" }, { v: "n-a", l: "N/A" }
+            ]} />
+          )}
         </div>
         <div className="grid md:grid-cols-2 gap-6">
-          <RadioField label="Nível de Pilotagem *" control={control} name="nivel" vertical options={[{v: "iniciante", l: "Iniciante"}, {v: "intermediario", l: "Intermediário"}, {v: "avancado", l: "Avançado"}]} setValue={setValue} error={errors.nivel?.message} />
+          <RadioField 
+            label="Qual seu nível de experiência? *" 
+            control={control} 
+            name="nivel" 
+            vertical 
+            options={[
+              {v: "iniciante", l: "Iniciante"}, 
+              {v: "intermediario", l: "Intermediário (Já participou de outras trilhas)"}, 
+              {v: "avancado", l: "Avançado (Piloto experiente)"}
+            ]} 
+            setValue={setValue} 
+            error={errors.nivel?.message} 
+          />
           <div className="space-y-4">
-            <SelectField label="Tipo Sanguíneo *" control={control} name="tipoSanguineo" setValue={setValue} error={errors.tipoSanguineo?.message} options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]} />
-            <SelectField label="Tamanho da Camisa *" control={control} name="camisa" setValue={setValue} error={errors.camisa?.message} options={["P", "M", "G", "GG", "XG"]} />
+            <SelectField label="Tipo Sanguíneo" control={control} name="tipoSanguineo" setValue={setValue} error={errors.tipoSanguineo?.message} options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "N/A"]} />
+            <SelectField label="Tamanho da Camisa *" control={control} name="camisa" setValue={setValue} error={errors.camisa?.message} options={["P", "M", "G", "GG", "XG", "N/A"]} />
           </div>
         </div>
         <Field label="Observações de Saúde" error={errors.observacoes?.message}><Textarea {...register("observacoes")} rows={2} /></Field>
@@ -251,6 +274,27 @@ export const RegistrationForm = () => {
           <TermItem id="termoSaude" label="Declaro estar apto física e mentalmente." control={control} setValue={setValue} error={errors.termoSaude?.message} />
           <TermItem id="termoImagem" label="Autorizo o uso de imagem." control={control} setValue={setValue} error={errors.termoImagem?.message} />
           <TermItem id="termoAmbiente" label="Respeitarei o meio ambiente." control={control} setValue={setValue} error={errors.termoAmbiente?.message} />
+          
+          <div className="pt-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-[10px] uppercase tracking-widest text-primary/70 hover:text-primary p-0 h-auto flex items-center gap-1.5">
+                  <Info className="w-3 h-3" /> Saiba mais sobre os termos
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-background border-primary/20 max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="font-display uppercase text-primary tracking-widest">Termos e Condições</DialogTitle>
+                  <DialogDescription className="text-foreground/70 pt-4 space-y-4 text-xs leading-relaxed">
+                    <p><strong>1. Saúde Física e Mental:</strong> Declaro que estou apto de saúde física e mental para participar do evento, assumo os riscos inerentes à prática do off-road e isento a organização de responsabilidades por danos ao meu veículo.</p>
+                    <p><strong>2. Uso de Imagem:</strong> Autorizo o uso da minha imagem e do meu veículo em fotos e vídeos para a divulgação da Trilha Meruoca Off Road nas redes sociais.</p>
+                    <p><strong>3. Meio Ambiente e Trajeto:</strong> Comprometo-me a respeitar o meio ambiente, não jogar lixo na natureza e seguir o trajeto oficial estipulado pela organização.</p>
+                    <p><strong>4. Segurança:</strong> O uso de equipamentos de segurança (capacete, botas, luvas) é obrigatório durante todo o percurso.</p>
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </FormSection>
 

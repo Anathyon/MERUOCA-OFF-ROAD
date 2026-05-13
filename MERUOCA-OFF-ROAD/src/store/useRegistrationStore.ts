@@ -12,7 +12,6 @@ interface RegistrationData {
   email: string;
   telefone: string;
   cidade: string;
-  estado: string;
   equipe: string;
   emergenciaNome: string;
   emergenciaTelefone: string;
@@ -43,7 +42,6 @@ const initialData: RegistrationData = {
   email: "",
   telefone: "",
   cidade: "",
-  estado: "",
   equipe: "",
   emergenciaNome: "",
   emergenciaTelefone: "",
