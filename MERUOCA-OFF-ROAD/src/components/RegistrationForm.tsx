@@ -109,7 +109,7 @@ export const RegistrationForm = () => {
         email: normalizedEmail,
         cidade: sanitize(data.cidade),
         equipe: data.equipe ? sanitize(data.equipe) : "",
-        modeloMoto: sanitize(data.modeloMoto),
+        modeloMoto: data.modeloMoto ? sanitize(data.modeloMoto) : "",
         observacoes: data.observacoes ? sanitize(data.observacoes) : "",
         emergenciaNome: data.emergenciaNome ? sanitize(data.emergenciaNome) : "",
         emergenciaTelefone: data.emergenciaTelefone ? sanitize(data.emergenciaTelefone) : "",
