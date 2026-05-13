@@ -8,20 +8,14 @@ describe("Registration Schema Validation", () => {
     email: "joao@email.com",
     telefone: "88999999999",
     cidade: "Meruoca",
-    estado: "CE",
-    emergenciaNome: "Maria Silva",
-    emergenciaTelefone: "88888888888",
-    modeloMoto: "Honda CRF",
-    cilindrada: "161-250",
     modalidade: "Moto",
     nivel: "intermediario",
     participarHard: "SIM",
-    tipoSanguineo: "O+",
     camisa: "G",
     termoSaude: true,
     termoImagem: true,
     termoAmbiente: true,
-    comprovante: [{ name: "receipt.jpg", type: "image/jpeg" }], // Adicionado tipo para passar na validação
+    comprovante: [{ name: "receipt.jpg", type: "image/jpeg" }],
   };
 
   it("should validate a complete valid data object", () => {
@@ -41,6 +35,24 @@ describe("Registration Schema Validation", () => {
   it("should fail if terms are not accepted", () => {
     const result = registrationSchema.safeParse({ ...validData, termoSaude: false });
     expect(result.success).toBe(false);
+  });
+
+  it("should fail if photo is provided but consent is not", () => {
+    const result = registrationSchema.safeParse({ 
+      ...validData, 
+      fotoPiloto: [{ name: "photo.jpg", type: "image/jpeg" }],
+      termoPostagemFoto: false 
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("should pass if photo is provided and consent is accepted", () => {
+    const result = registrationSchema.safeParse({ 
+      ...validData, 
+      fotoPiloto: [{ name: "photo.jpg", type: "image/jpeg" }],
+      termoPostagemFoto: true 
+    });
+    expect(result.success).toBe(true);
   });
 
   it("should normalize email to lowercase", () => {

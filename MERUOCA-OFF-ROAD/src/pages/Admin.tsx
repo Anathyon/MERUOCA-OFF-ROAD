@@ -37,7 +37,7 @@ interface PilotRegistration {
   email: string;
   telefone: string;
   cidade: string;
-  estado: string;
+  instagram?: string;
   equipe?: string;
   emergenciaNome: string;
   emergenciaTelefone: string;
@@ -50,6 +50,7 @@ interface PilotRegistration {
   camisa: string;
   observacoes?: string;
   comprovanteUrl?: string;
+  fotoPilotoUrl?: string;
   status: "pending" | "confirmed" | "rejected";
   submittedAt: { toDate: () => Date } | null;
 }
@@ -128,8 +129,8 @@ const Admin = () => {
                 modelo_moto: registration.modeloMoto,
                 modalidade: registration.modalidade,
                 cidade: registration.cidade,
-                estado: registration.estado,
                 whatsapp: registration.telefone,
+                instagram: registration.instagram || "N/A",
               };
 
               console.log("Enviando e-mail via EmailJS...", templateParams);
@@ -174,16 +175,16 @@ const Admin = () => {
    */
   const exportToCSV = () => {
     const headers = [
-      "Nome", "Apelido/Nº", "Nascimento", "E-mail", "WhatsApp", 
-      "Cidade", "Estado", "Equipe", "Emergência Nome", "Emergência Fone", 
-      "Modelo", "Cilindrada", "Modalidade", "Nível", "Hard?", "Sangue", "Camisa", "Obs", "Status"
+      "Nome", "Apelido/Nº", "Nascimento", "E-mail", "WhatsApp", "Instagram",
+      "Cidade", "Equipe", "Emergência Nome", "Emergência Fone", 
+      "Modelo", "Cilindrada", "Modalidade", "Nível", "Hard?", "Sangue", "Camisa", "Obs", "Status", "Foto Piloto"
     ];
     
     const rows = filteredData.map((r: PilotRegistration) => [
-      `"${r.nome}"`, `"${r.apelidoNumero || ""}"`, `"${r.nascimento}"`, `"${r.email}"`, `"${r.telefone}"`,
-      `"${r.cidade}"`, `"${r.estado}"`, `"${r.equipe || ""}"`, `"${r.emergenciaNome}"`, `"${r.emergenciaTelefone}"`,
+      `"${r.nome}"`, `"${r.apelidoNumero || ""}"`, `"${r.nascimento}"`, `"${r.email}"`, `"${r.telefone}"`, `"${r.instagram || ""}"`,
+      `"${r.cidade}"`, `"${r.equipe || ""}"`, `"${r.emergenciaNome}"`, `"${r.emergenciaTelefone}"`,
       `"${r.modeloMoto}"`, `"${r.cilindrada}"`, `"${r.modalidade}"`, `"${r.nivel}"`, `"${r.participarHard}"`, 
-      `"${r.tipoSanguineo}"`, `"${r.camisa}"`, `"${r.observacoes || ""}"`, `"${r.status}"`
+      `"${r.tipoSanguineo}"`, `"${r.camisa}"`, `"${r.observacoes || ""}"`, `"${r.status}"`, `"${r.fotoPilotoUrl || ""}"`
     ]);
     
     const csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map((e: string[]) => e.join(",")).join("\n");
@@ -298,7 +299,7 @@ const Admin = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col text-xs text-muted-foreground">
-                          <span>{reg.cidade} - {reg.estado}</span>
+                          <span>{reg.cidade}</span>
                           <span className="italic">{reg.equipe || "Sem Equipe"}</span>
                         </div>
                       </td>
@@ -403,7 +404,8 @@ const Admin = () => {
                   <div className="space-y-2">
                     <DetailItem label="E-mail" value={selectedPilot.email} />
                     <DetailItem label="WhatsApp" value={selectedPilot.telefone} />
-                    <DetailItem label="Cidade/UF" value={`${selectedPilot.cidade} - ${selectedPilot.estado}`} />
+                    <DetailItem label="Instagram" value={selectedPilot.instagram || "N/A"} />
+                    <DetailItem label="Cidade" value={selectedPilot.cidade} />
                     <DetailItem label="Equipe" value={selectedPilot.equipe || "Sem Equipe"} />
                   </div>
                 </div>
@@ -444,14 +446,29 @@ const Admin = () => {
                 {selectedPilot.comprovanteUrl && (
                   <div className="pt-4">
                     <Button 
-                      className="w-full gap-2" 
-                      variant="outlineNeon" 
+                      className="w-full gap-2 border-primary/30" 
+                      variant="outline" 
                       onClick={() => {
                         setSelectedProof(selectedPilot.comprovanteUrl!);
                         setSelectedPilot(null);
                       }}
                     >
                       <Eye size={16} /> Ver Comprovante
+                    </Button>
+                  </div>
+                )}
+
+                {selectedPilot.fotoPilotoUrl && (
+                  <div className="pt-2">
+                    <Button 
+                      className="w-full gap-2" 
+                      variant="outlineNeon" 
+                      onClick={() => {
+                        setSelectedProof(selectedPilot.fotoPilotoUrl!);
+                        setSelectedPilot(null);
+                      }}
+                    >
+                      <Users size={16} /> Ver Foto do Piloto
                     </Button>
                   </div>
                 )}

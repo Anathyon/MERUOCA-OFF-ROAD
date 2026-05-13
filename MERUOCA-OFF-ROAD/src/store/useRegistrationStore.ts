@@ -13,6 +13,7 @@ interface RegistrationData {
   telefone: string;
   cidade: string;
   equipe: string;
+  instagram: string;
   emergenciaNome: string;
   emergenciaTelefone: string;
   modeloMoto: string;
@@ -26,6 +27,7 @@ interface RegistrationData {
   termoSaude: boolean;
   termoImagem: boolean;
   termoAmbiente: boolean;
+  termoPostagemFoto: boolean;
 }
 
 interface RegistrationStore {
@@ -43,6 +45,7 @@ const initialData: RegistrationData = {
   telefone: "",
   cidade: "",
   equipe: "",
+  instagram: "",
   emergenciaNome: "",
   emergenciaTelefone: "",
   modeloMoto: "",
@@ -56,6 +59,7 @@ const initialData: RegistrationData = {
   termoSaude: false,
   termoImagem: false,
   termoAmbiente: false,
+  termoPostagemFoto: false,
 };
 
 /**

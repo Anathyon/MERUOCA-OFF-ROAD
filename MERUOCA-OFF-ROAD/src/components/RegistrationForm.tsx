@@ -42,6 +42,7 @@ export const registrationSchema = z.object({
   telefone: z.string().trim().min(10, "Telefone inválido"),
   cidade: z.string().trim().min(2, "Informe sua cidade"),
   equipe: z.string().trim().max(100).optional(),
+  instagram: z.string().trim().max(50).optional(),
   emergenciaNome: z.string().trim().max(100).optional(),
   emergenciaTelefone: z.string().trim().max(20).optional(),
   modeloMoto: z.string().trim().max(100).optional(),
@@ -55,7 +56,17 @@ export const registrationSchema = z.object({
   termoSaude: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
   termoImagem: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
   termoAmbiente: z.boolean().refine((v) => v === true, { message: "Obrigatório" }),
+  termoPostagemFoto: z.boolean().optional(),
   comprovante: z.any().refine((files) => files && files.length > 0 && files[0]?.type?.startsWith('image/'), "O comprovante deve ser uma imagem (Print/Foto)"),
+  fotoPiloto: z.any().optional(),
+}).refine((data) => {
+  if (data.fotoPiloto && data.fotoPiloto.length > 0 && !data.termoPostagemFoto) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Aceite o termo para enviar a foto",
+  path: ["termoPostagemFoto"],
 });
 
 export type RegistrationFormData = z.infer<typeof registrationSchema>;
@@ -109,6 +120,7 @@ export const RegistrationForm = () => {
         email: normalizedEmail,
         cidade: sanitize(data.cidade),
         equipe: data.equipe ? sanitize(data.equipe) : "",
+        instagram: data.instagram ? sanitize(data.instagram) : "",
         modeloMoto: data.modeloMoto ? sanitize(data.modeloMoto) : "",
         observacoes: data.observacoes ? sanitize(data.observacoes) : "",
         emergenciaNome: data.emergenciaNome ? sanitize(data.emergenciaNome) : "",
@@ -177,10 +189,42 @@ export const RegistrationForm = () => {
         });
       }
 
-      const { comprovante, _gotcha, ...rest } = sanitizedData;
+      // 2. Processar a Foto do Piloto (Opcional)
+      let fotoPilotoUrl = "";
+      if (data.fotoPiloto && data.fotoPiloto[0]) {
+        const file = data.fotoPiloto[0];
+        fotoPilotoUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              const MAX_SIZE = 800; // Foto do piloto pode ser um pouco menor
+              if (width > height) {
+                if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+              } else {
+                if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+              }
+              canvas.width = width; canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.5));
+            };
+            img.onerror = reject;
+          };
+          reader.onerror = reject;
+        });
+      }
+ 
+      const { comprovante, fotoPiloto, _gotcha, ...rest } = sanitizedData;
       await addDoc(collection(db, "registrations"), {
         ...rest,
         comprovanteUrl,
+        fotoPilotoUrl,
       });
 
       toast.success("Inscrição enviada!", {
@@ -220,7 +264,23 @@ export const RegistrationForm = () => {
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Apelido / Número" error={errors.apelidoNumero?.message}><Input {...register("apelidoNumero")} placeholder="Como prefere ser chamado" /></Field>
+          <Field label="Instagram" error={errors.instagram?.message}><Input {...register("instagram")} placeholder="@seu_perfil" /></Field>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
           <Field label="Equipe" error={errors.equipe?.message}><Input {...register("equipe")} /></Field>
+          <div>
+            <Label className="font-display uppercase text-[10px] tracking-widest text-primary mb-1 block">Foto do Piloto (Opcional)</Label>
+            <input type="file" id="fotoPiloto" className="hidden" accept="image/*" {...register("fotoPiloto")} />
+            <Label
+              htmlFor="fotoPiloto"
+              className="flex items-center justify-center gap-3 w-full py-2 border border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer rounded-sm group text-primary h-10"
+            >
+              <CheckCircle2 size={14} className={cn("text-primary/50", watch("fotoPiloto")?.length > 0 && "text-primary")} />
+              <span className="font-condensed font-bold uppercase tracking-widest text-[10px]">
+                {watch("fotoPiloto")?.length > 0 ? "Foto Selecionada" : "Anexar Foto"}
+              </span>
+            </Label>
+          </div>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Cidade *" error={errors.cidade?.message}><Input {...register("cidade")} /></Field>
@@ -274,6 +334,18 @@ export const RegistrationForm = () => {
           <TermItem id="termoSaude" label="Declaro estar apto física e mentalmente." control={control} setValue={setValue} error={errors.termoSaude?.message} />
           <TermItem id="termoImagem" label="Autorizo o uso de imagem." control={control} setValue={setValue} error={errors.termoImagem?.message} />
           <TermItem id="termoAmbiente" label="Respeitarei o meio ambiente." control={control} setValue={setValue} error={errors.termoAmbiente?.message} />
+          
+          {(watch("fotoPiloto")?.length > 0) && (
+            <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+              <TermItem 
+                id="termoPostagemFoto" 
+                label="Autorizo a postagem da foto enviada nas redes sociais oficiais do Meruoca Off Road." 
+                control={control} 
+                setValue={setValue} 
+                error={errors.termoPostagemFoto?.message} 
+              />
+            </div>
+          )}
           
           <div className="pt-2">
             <Dialog>
