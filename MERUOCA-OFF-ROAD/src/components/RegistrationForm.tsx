@@ -268,19 +268,15 @@ export const RegistrationForm = () => {
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Equipe" error={errors.equipe?.message}><Input {...register("equipe")} /></Field>
-          <div>
-            <Label className="font-display uppercase text-[10px] tracking-widest text-primary mb-1 block">Foto do Piloto (Opcional)</Label>
-            <input type="file" id="fotoPiloto" className="hidden" accept="image/*" {...register("fotoPiloto")} />
-            <Label
-              htmlFor="fotoPiloto"
-              className="flex items-center justify-center gap-3 w-full py-2 border border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer rounded-sm group text-primary h-10"
-            >
-              <CheckCircle2 size={14} className={cn("text-primary/50", watch("fotoPiloto")?.length > 0 && "text-primary")} />
-              <span className="font-condensed font-bold uppercase tracking-widest text-[10px]">
-                {watch("fotoPiloto")?.length > 0 ? "Foto Selecionada" : "Anexar Foto"}
-              </span>
-            </Label>
-          </div>
+          <FileUploadField 
+            id="fotoPiloto"
+            label="Foto do Piloto (Opcional)"
+            register={register}
+            watch={watch}
+            error={errors.fotoPiloto?.message}
+            placeholder="Anexar Foto"
+            changeLabel="Alterar Foto"
+          />
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <Field label="Cidade *" error={errors.cidade?.message}><Input {...register("cidade")} /></Field>
@@ -379,17 +375,16 @@ export const RegistrationForm = () => {
           <p className="text-foreground/80 font-medium text-sm">Chave Pix: <span className="text-primary select-all">offroadmeruoca@gmail.com</span></p>
           
           <div className="pt-2">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3">Upload do comprovante (Somente Imagem/Print)</p>
-            <input type="file" id="comprovante" className="hidden" accept="image/*" {...register("comprovante")} />
-            <Label
-              htmlFor="comprovante"
-              className="flex items-center justify-center gap-3 w-full py-4 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer rounded-sm group text-primary"
-            >
-              <div className="bg-primary text-background p-1.5 rounded-sm group-hover:scale-110 transition-transform shadow-neon-sm">
-                <CheckCircle2 size={16} />
-              </div>
-              <span className="font-condensed font-bold uppercase tracking-[0.2em] text-sm">Anexar Comprovante</span>
-            </Label>
+            <FileUploadField 
+              id="comprovante"
+              label="Upload do comprovante (Somente Imagem/Print)"
+              register={register}
+              watch={watch}
+              error={errors.comprovante?.message}
+              placeholder="Anexar Comprovante"
+              changeLabel="Substituir Comprovante"
+              required
+            />
           </div>
         </div>
       </FormSection>
@@ -484,3 +479,89 @@ const SuccessState = ({ onReset }: { onReset: () => void }) => (
     <Button variant="outlineNeon" size="lg" onClick={onReset} className="px-12">Inscrever Outro Piloto</Button>
   </div>
 );
+
+const FileUploadField = ({ 
+  id, 
+  label, 
+  register, 
+  error, 
+  watch, 
+  placeholder = "Anexar Arquivo",
+  changeLabel = "Alterar Arquivo",
+  required = false
+}: { 
+  id: keyof RegistrationFormData, 
+  label: string, 
+  register: any, 
+  error?: any, 
+  watch: any,
+  placeholder?: string,
+  changeLabel?: string,
+  required?: boolean
+}) => {
+  const files = watch(id);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (files && files.length > 0 && files[0] instanceof File) {
+      const url = URL.createObjectURL(files[0]);
+      setPreview(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreview(null);
+    }
+  }, [files]);
+
+  const hasFile = files && files.length > 0;
+
+  return (
+    <div className="space-y-2">
+      <Label className="font-display uppercase text-[10px] tracking-widest text-primary mb-1 block">
+        {label} {required && "*"}
+      </Label>
+      <input type="file" id={id} className="hidden" accept="image/*" {...register(id)} />
+      <Label
+        htmlFor={id}
+        className={cn(
+          "flex flex-col items-center justify-center gap-3 w-full transition-all cursor-pointer rounded-sm group border-2 border-dashed",
+          hasFile 
+            ? "border-primary bg-primary/5 py-4" 
+            : "border-primary/30 hover:border-primary hover:bg-primary/5 py-6"
+        )}
+      >
+        {preview ? (
+          <div className="relative w-20 h-20 md:w-24 md:h-24 overflow-hidden rounded-sm border border-primary/20 shadow-neon-sm">
+            <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+               <CheckCircle2 className="text-white" size={24} />
+            </div>
+          </div>
+        ) : (
+          <div className={cn(
+            "p-2 rounded-sm transition-transform shadow-neon-sm",
+            hasFile ? "bg-primary text-background" : "bg-primary/20 text-primary group-hover:scale-110"
+          )}>
+            <CheckCircle2 size={hasFile ? 18 : 20} />
+          </div>
+        )}
+        
+        <div className="text-center">
+          <span className={cn(
+            "font-condensed font-bold uppercase tracking-[0.2em] block",
+            hasFile ? "text-sm text-primary" : "text-xs text-primary/70"
+          )}>
+            {hasFile ? changeLabel : placeholder}
+          </span>
+          {hasFile && files[0]?.name && (
+            <span className="text-[9px] text-muted-foreground truncate max-w-[200px] block mt-1 mx-auto">
+              {files[0].name}
+            </span>
+          )}
+        </div>
+      </Label>
+      <div className="h-3">
+        {error && <p className="text-destructive text-[10px] font-bold uppercase tracking-tighter">{error}</p>}
+      </div>
+    </div>
+  );
+};
