@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 import { useForm, useWatch, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,6 +36,7 @@ import { cn } from "@/lib/utils";
  */
 export const registrationSchema = z.object({
   _gotcha: z.string().max(0).optional(),
+  captcha: z.string().min(1, "Valide o CAPTCHA"),
   nome: z.string().trim().min(3, "Informe seu nome completo").max(120),
   apelidoNumero: z.string().trim().max(50).optional(),
   nascimento: z.string().min(1, "Informe sua data de nascimento"),
@@ -73,6 +75,7 @@ export type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export const RegistrationForm = () => {
   const [submitted, setSubmitted] = useState(false);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { formData, setFormData, resetForm } = useRegistrationStore();
 
   const {
@@ -88,6 +91,7 @@ export const RegistrationForm = () => {
     defaultValues: useMemo(() => ({ 
       ...formData,
       _gotcha: "",
+      captcha: "",
       observacoes: formData.observacoes || "", 
     }), [formData]),
   });
@@ -234,7 +238,10 @@ export const RegistrationForm = () => {
       setSubmitted(true);
       resetForm();
       reset();
+      recaptchaRef.current?.reset();
     } catch (err: unknown) {
+      recaptchaRef.current?.reset();
+      setValue("captcha", "");
       console.error("Firebase Error:", err);
       const errorMessage = err instanceof Error ? err.message : "";
       if (errorMessage.includes("not found")) {
@@ -388,6 +395,20 @@ export const RegistrationForm = () => {
           </div>
         </div>
       </FormSection>
+
+      <div className="flex justify-center py-4">
+        <ReCAPTCHA
+          ref={recaptchaRef}
+          sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+          onChange={(token) => setValue("captcha", token || "", { shouldValidate: true })}
+          theme="dark"
+        />
+      </div>
+      {errors.captcha && (
+        <p className="text-destructive text-[10px] font-bold uppercase tracking-tighter text-center -mt-2 mb-4">
+          {errors.captcha.message}
+        </p>
+      )}
 
       <Button type="submit" variant="hero" size="xl" className="w-full text-lg" disabled={isSubmitting}>
         {isSubmitting ? <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Processando...</> : <>Finalizar Inscrição <ShieldCheck className="w-5 h-5 ml-2" /></>}
